@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun HomeTabsScreen(
     navController: NavController,
-    pagerState: PagerState,               // Pass from parent
+    pagerState: PagerState,
     currentPage: MutableState<String>? = null,
     modifier: Modifier = Modifier
 ) {
