@@ -41,7 +41,7 @@ fun Footer(currentPage: String, onItemSelected: (String) -> Unit) {
 
             Box(
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(0.dp,2.dp,0.dp,2.dp)
                     .background(
                         color = if (isSelected) Color.White else Color.Transparent,
                         shape = RoundedCornerShape(10.dp)

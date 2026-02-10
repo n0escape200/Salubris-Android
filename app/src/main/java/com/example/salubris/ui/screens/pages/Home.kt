@@ -216,7 +216,8 @@ fun Analytics(){
                 fontWeight = FontWeight.SemiBold)
         }
         Column {
-            Text("Weekly caloric intake", color = Color.White)
+            Text("Weekly caloric intake", color = Color.White, fontWeight = FontWeight.W500)
+            Spacer(modifier = Modifier.height(10.dp))
             SimpleLineChart()
         }
     }

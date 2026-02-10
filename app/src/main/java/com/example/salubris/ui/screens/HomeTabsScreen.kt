@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.snapshotFlow
 import androidx.navigation.NavController
 import com.example.salubris.ui.screens.pages.Home
-import com.example.salubris.ui.screens.pages.Macros
+import com.example.salubris.ui.screens.pages.Tracking
+import com.example.salubris.ui.screens.subpages.Macros
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -35,7 +36,7 @@ fun HomeTabsScreen(
     ) { page ->
         when (page) {
             0 -> Home(navController)
-            1 -> Macros(navController)
+            1 -> Tracking(navController)
         }
     }
 }

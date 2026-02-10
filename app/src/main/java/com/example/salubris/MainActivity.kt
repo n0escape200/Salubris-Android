@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                         currentPage = currentPage,
                         modifier = Modifier
                             .padding(innerPadding)
-                            .padding(horizontal = 10.dp)
+                            .padding(horizontal = 15.dp)
                     )
                 }
             }
