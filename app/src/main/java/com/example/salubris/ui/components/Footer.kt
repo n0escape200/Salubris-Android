@@ -7,14 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.salubris.ui.theme.FooterItems
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.ui.Alignment
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.MainContainerBorder
 
@@ -51,9 +50,8 @@ fun Footer(currentPage: String, onItemSelected: (String) -> Unit) {
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = item.icon,
