@@ -12,7 +12,7 @@ import com.example.salubris.ui.screens.subpages.Water
 val tabs = mapOf<String, @Composable () -> Unit>(
     "Macros" to { Macros() },
     "Water" to { Water() },
-    "Steps" to { Steps() }
+    "Steps" to { Steps() },
 )
 
 

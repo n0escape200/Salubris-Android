@@ -10,4 +10,9 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-val ContainerBackground = Color(51,51,51)
+val ContainerBackground = Color(40, 40, 40)
+
+val caloriesColor = Color(255,140,66)
+val proteinColor = Color(41,120,160)
+val carbsColor = Color(49,86,89)
+val fatsColor = Color(188,171,121)

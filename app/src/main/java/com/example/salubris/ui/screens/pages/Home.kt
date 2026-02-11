@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.core.view.setPadding
+import com.example.salubris.ui.theme.caloriesColor
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.*
 
@@ -95,7 +96,7 @@ fun TodayIntake() {
             Icon(
                 imageVector = Icons.Default.LocalFireDepartment,
                 contentDescription = "Flame",
-                tint = Color(255, 117, 18),
+                tint = caloriesColor,
                 modifier = Modifier.size(30.dp)
             )
             Text(
