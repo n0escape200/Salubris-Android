@@ -2,7 +2,6 @@ package com.example.salubris.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.salubris.ui.theme.ContainerBackground
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.font.FontWeight
 
 
 @Composable
@@ -28,35 +29,45 @@ fun PageModal(tabs: Map<String, @Composable () -> Unit>) {
     var selectedTab by remember { mutableStateOf(tabs.keys.first()) }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ContainerBackground, shape = RoundedCornerShape(5.dp))
-                .padding(5.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .background(ContainerBackground, shape = RoundedCornerShape(12.dp))
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             tabs.forEach { (title, _) ->
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (selectedTab == title) Color(70, 70, 70) else Color(40, 40, 40),
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .padding(5.dp)
+
+                val isSelected = selectedTab == title
+
+                Button(
+                    onClick = { selectedTab = title },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) Color(70, 70, 70) else Color(40, 40, 40),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Button(
-                        onClick = { selectedTab = title },
-                    ) {
-                        Text(title, color = Color.White)
-                    }
+                    Text(
+                        text = title,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }
 
-        Column {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp)
+        ) {
             tabs[selectedTab]?.invoke()
         }
     }
