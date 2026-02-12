@@ -25,7 +25,6 @@ fun AppNav(
     ) {
         composable(Routes.Home) {
             HomeTabsScreen(
-                navController = navController,
                 pagerState = pagerState,
                 currentPage = currentPage,
                 modifier = modifier

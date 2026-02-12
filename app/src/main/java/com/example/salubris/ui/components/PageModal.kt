@@ -30,8 +30,7 @@ fun PageModal(tabs: Map<String, @Composable () -> Unit>) {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 10.dp),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
