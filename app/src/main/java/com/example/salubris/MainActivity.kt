@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val pagerState = rememberPagerState(pageCount = { 2 })
+            val pagerState = rememberPagerState(pageCount = { 3 })
             val currentPage = remember { mutableStateOf("Home") }
             val coroutineScope = rememberCoroutineScope()
 
@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                                 val page = when (label) {
                                     "Home" -> 0
                                     "Tracking" -> 1
+                                    "Products" -> 2
                                     else -> 0
                                 }
                                 coroutineScope.launch {
@@ -56,7 +57,6 @@ class MainActivity : ComponentActivity() {
                             })
                     }) { innerPadding ->
                     HomeTabsScreen(
-                        navController = rememberNavController(),
                         pagerState = pagerState,
                         currentPage = currentPage,
                         modifier = Modifier

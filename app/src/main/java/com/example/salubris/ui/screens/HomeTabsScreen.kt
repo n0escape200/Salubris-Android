@@ -1,3 +1,5 @@
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
@@ -8,13 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.snapshotFlow
 import androidx.navigation.NavController
 import com.example.salubris.ui.screens.pages.Home
+import com.example.salubris.ui.screens.pages.Products
 import com.example.salubris.ui.screens.pages.Tracking
 import com.example.salubris.ui.screens.subpages.Macros
 import kotlinx.coroutines.flow.collectLatest
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeTabsScreen(
-    navController: NavController,
     pagerState: PagerState,
     currentPage: MutableState<String>? = null,
     modifier: Modifier = Modifier
@@ -25,6 +28,7 @@ fun HomeTabsScreen(
             currentPage?.value = when (pageIndex) {
                 0 -> "Home"
                 1 -> "Tracking"
+                2 -> "Products"
                 else -> "Home"
             }
         }
@@ -35,8 +39,9 @@ fun HomeTabsScreen(
         modifier = modifier.fillMaxSize()
     ) { page ->
         when (page) {
-            0 -> Home(navController)
-            1 -> Tracking(navController)
+            0 -> Home()
+            1 -> Tracking()
+            2 -> Products()
         }
     }
 }

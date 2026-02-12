@@ -225,7 +225,7 @@ fun Analytics(){
 }
 
 @Composable
-fun Home(navController: NavController) {
+fun Home() {
     Column(
         modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

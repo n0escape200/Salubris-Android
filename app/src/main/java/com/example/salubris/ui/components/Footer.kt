@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.ui.Alignment
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.MainContainerBorder
@@ -24,7 +25,7 @@ fun Footer(currentPage: String, onItemSelected: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 15.dp)
             .background(ContainerBackground, shape = MainContainerBorder),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
@@ -33,7 +34,8 @@ fun Footer(currentPage: String, onItemSelected: (String) -> Unit) {
         // List of items from FooterItems
         val items = listOf(
             FooterItemData("Home", Icons.Default.Home),
-            FooterItemData("Tracking", Icons.Default.Create)
+            FooterItemData("Tracking", Icons.Default.Create),
+            FooterItemData("Products", Icons.Default.Kitchen)
         )
 
         items.forEach { item ->
