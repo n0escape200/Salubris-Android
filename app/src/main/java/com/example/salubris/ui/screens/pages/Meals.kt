@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,43 +20,21 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.productColor
-import com.example.salubris.utils.FieldType
-import com.example.salubris.utils.FormData
-
-data class ProductData(
-    val name: String,
-    val kcal: Number,
-    val protein: Number,
-    val carbs: Number,
-    val fats: Number
-)
 
 @Composable
-fun Products() {
-    var isOpen by remember { mutableStateOf(false) };
-
-    val fields: List<FormData<Any>> = listOf(
-        FormData(
-            name = "Name",
-            type = FieldType.STRING,
-            value = ""
-        )
-    )
-
+fun Meals() {
+    var isOpen by remember { mutableStateOf(false) }
+    var name by remember {mutableStateOf("")}
     Box(modifier = Modifier.fillMaxSize()) { // <-- Wrap everything in Box
 
         // Main content
@@ -76,7 +53,7 @@ fun Products() {
                 ) {
                     Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(30.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Add Product", color = Color.White)
+                    Text("Add Meal", color = Color.White)
                 }
             }
 
@@ -90,14 +67,14 @@ fun Products() {
             }
         }
 
+        // Modal goes LAST so it overlays everything
         Modal(
             open = isOpen,
             onClose = { isOpen = false },
-            onSubmit = { /* handle submit logic */ },
+            onSubmit = { /* handle submit logic */ }
         ) {
             Column() {
-                Text("Add a product", color = Color.White, fontWeight = FontWeight.W600, fontSize = 32.sp)
-                Spacer(modifier = Modifier.height(10.dp))
+                Input("Name",name) { name = it }
             }
         }
     }

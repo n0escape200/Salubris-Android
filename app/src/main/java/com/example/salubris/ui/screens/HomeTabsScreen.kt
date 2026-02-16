@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.snapshotFlow
 import androidx.navigation.NavController
 import com.example.salubris.ui.screens.pages.Home
+import com.example.salubris.ui.screens.pages.Meals
 import com.example.salubris.ui.screens.pages.Products
+import com.example.salubris.ui.screens.pages.Settings
 import com.example.salubris.ui.screens.pages.Tracking
 import com.example.salubris.ui.screens.subpages.Macros
 import kotlinx.coroutines.flow.collectLatest
@@ -29,6 +31,8 @@ fun HomeTabsScreen(
                 0 -> "Home"
                 1 -> "Tracking"
                 2 -> "Products"
+                3 -> "Meals"
+                4 -> "Settings"
                 else -> "Home"
             }
         }
@@ -42,6 +46,8 @@ fun HomeTabsScreen(
             0 -> Home()
             1 -> Tracking()
             2 -> Products()
+            3 -> Meals()
+            4 -> Settings()
         }
     }
 }

@@ -21,10 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.cancelColor
 import com.example.salubris.ui.theme.submitColor
 
@@ -33,8 +37,9 @@ import com.example.salubris.ui.theme.submitColor
 fun Modal(
     open: Boolean,
     onClose: () -> Unit,
-    onSubmit: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
+    onSubmit: (() -> Unit),
+    stateValidation: SnapshotStateMap<String, MutableState<Any>>? = null,
+    content: @Composable (ColumnScope.() -> Unit),
 ) {
     // Animated visibility for modal
     AnimatedVisibility(
@@ -52,15 +57,16 @@ fun Modal(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable { onClose() }
-                .padding(0.dp, 0.dp, 0.dp, 10.dp),
+                .padding(0.dp, 0.dp, 0.dp, 10.dp)
+                .border(1.dp,Color(84, 84, 84, 255), RoundedCornerShape(10.dp))
+            ,
             contentAlignment = Alignment.Center
         ) {
             // Modal container
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(84, 84, 84, 255), RoundedCornerShape(10.dp))
+                    .background(ContainerBackground, RoundedCornerShape(10.dp))
                     .clickable(enabled = false) {} // prevent closing when clicking inside
             ) {
                 Column(
@@ -86,7 +92,7 @@ fun Modal(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(84, 84, 84, 255), RoundedCornerShape(0f,0f,20f,20f)) // Same color as modal background
+                            .background(ContainerBackground, RoundedCornerShape(0f,0f,20f,20f)) // Same color as modal background
                             .padding(bottom = 16.dp, start = 16.dp, end = 16.dp)
                     ) {
                         Row(
@@ -103,9 +109,14 @@ fun Modal(
                                 Text("Close")
                             }
 
-                            onSubmit?.let {
+
                                 Button(
-                                    onClick = it,
+                                    onClick = {
+                                        if(stateValidation?.isEmpty() == false){
+
+                                        }
+                                        onSubmit();
+                                    },
                                     colors = ButtonDefaults.buttonColors(submitColor),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                     shape = RoundedCornerShape(10.dp),
@@ -113,7 +124,7 @@ fun Modal(
                                 ) {
                                     Text("Submit")
                                 }
-                            }
+
                         }
                     }
                 }
