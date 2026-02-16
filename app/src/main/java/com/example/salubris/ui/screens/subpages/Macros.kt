@@ -5,7 +5,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Dining
@@ -29,6 +31,7 @@ import com.example.salubris.ui.theme.proteinColor
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Macros() {
@@ -133,13 +136,14 @@ fun Macros() {
             modifier = Modifier
                 .background(ContainerBackground, RoundedCornerShape(10.dp))
                 .padding(10.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            MacroLine()
-            MacroLine()
-            MacroLine()
-            MacroLine()
+            repeat(30){
+                MacroLine()
+            }
         }
     }
 
