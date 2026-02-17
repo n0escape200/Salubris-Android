@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -38,6 +39,8 @@ android {
 }
 
 dependencies {
+    val room_version = "2.8.4"
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -60,4 +63,6 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.room:room-runtime:${room_version}")
+    ksp("androidx.room:room-compiler:$room_version")
 }

@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.cancelColor
 import com.example.salubris.ui.theme.submitColor
@@ -38,7 +40,7 @@ fun Modal(
     open: Boolean,
     onClose: () -> Unit,
     onSubmit: (() -> Unit),
-    stateValidation: SnapshotStateMap<String, MutableState<Any>>? = null,
+    title: String,
     content: @Composable (ColumnScope.() -> Unit),
 ) {
     // Animated visibility for modal
@@ -70,14 +72,22 @@ fun Modal(
                     .clickable(enabled = false) {} // prevent closing when clicking inside
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
                 ) {
+                    Text(
+                        title,
+                        color = Color.White,
+                        fontWeight = FontWeight.W600,
+                        fontSize = 32.sp
+                    )
+
                     // Scrollable content area
                     Column(
                         modifier = Modifier
                             .weight(1f) // Takes remaining space
                             .fillMaxWidth()
-                            .padding(16.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.Top
                     ) {
@@ -112,9 +122,6 @@ fun Modal(
 
                                 Button(
                                     onClick = {
-                                        if(stateValidation?.isEmpty() == false){
-
-                                        }
                                         onSubmit();
                                     },
                                     colors = ButtonDefaults.buttonColors(submitColor),
