@@ -1,8 +1,10 @@
 package com.example.salubris.ui.screens.subpages
 
+import android.R
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,8 +20,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.components.MacroLine
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.caloriesColor
@@ -58,6 +62,7 @@ fun Macros() {
 
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
@@ -70,7 +75,7 @@ fun Macros() {
                 Spacer(Modifier.width(6.dp))
                 Text("Meals", color = Color.White)
             }
-
+            Text("/", color = Color.White, fontWeight = FontWeight.W800, fontSize = 30.sp)
             Button(
                 onClick = {},
                 colors = ButtonDefaults.buttonColors(mealColor),

@@ -71,7 +71,8 @@ fun Meals() {
         Modal(
             open = isOpen,
             onClose = { isOpen = false },
-            onSubmit = { /* handle submit logic */ }
+            onSubmit = { /* handle submit logic */ },
+            title = "Add a meal"
         ) {
             Column() {
                 Input("Name",name) { name = it }

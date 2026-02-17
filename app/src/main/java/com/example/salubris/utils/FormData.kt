@@ -5,11 +5,11 @@ enum class FieldType {
 }
 
 
-data class FormData<T>(
-    val name: String,
-    val type: FieldType,
-    var value: T?,
-    val required: Boolean = false,
+data class FormData(
+    var name: String,
+    var type: FieldType,
+    var value: Any,
+    var required: Boolean = false,
 ){
 
 
@@ -18,7 +18,7 @@ data class FormData<T>(
             is String -> (value as String).isNotBlank()
             is Number -> (value as Number).toDouble() != 0.0
             is Boolean -> true // Boolean always has a value (true/false)
-            else -> value != null
+            else -> true
         }
     }
 

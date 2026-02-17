@@ -19,12 +19,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
+import com.example.salubris.database.AppDatabase
 import com.example.salubris.ui.components.Footer
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val db =
+            Room.databaseBuilder(applicationContext, AppDatabase::class.java, "Salubris").build()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
