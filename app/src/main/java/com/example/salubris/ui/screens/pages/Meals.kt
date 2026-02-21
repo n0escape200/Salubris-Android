@@ -75,7 +75,6 @@ fun Meals() {
             title = "Add a meal"
         ) {
             Column() {
-                Input("Name",name) { name = it }
             }
         }
     }

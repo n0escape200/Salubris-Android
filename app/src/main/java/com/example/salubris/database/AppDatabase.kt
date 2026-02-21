@@ -5,12 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.salubris.database.DAO.ProductDao
+import com.example.salubris.database.DAO.SettingDao
 import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.Setting
 
-@Database(entities = [Product::class], version = 1)
+@Database(entities = [Product::class, Setting::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao
+    abstract fun settingDao(): SettingDao
 
     companion object {
         @Volatile

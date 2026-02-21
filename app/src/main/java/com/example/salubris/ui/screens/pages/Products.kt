@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.Product
+import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.productColor
@@ -69,14 +72,18 @@ fun Products() {
     }
 
     val context = LocalContext.current
-    val productDao = AppDatabase.getDatabase(context).productDao()
+    val database = AppDatabase.getDatabase(context)
+    val repository = remember { ProductRepository(database.productDao()) }
 
-    // Collect products from Flow for automatic UI updates
-    val products by productDao.getProducts().collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+
+    // Collect products through repository
+    val products by repository
+        .getAllProducts()
+        .collectAsState(initial = emptyList())
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,7 +91,6 @@ fun Products() {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            // Add Product Button
             Row {
                 Button(
                     onClick = { isOpen = true },
@@ -103,7 +109,6 @@ fun Products() {
                 }
             }
 
-            // Product list
             Column(
                 modifier = Modifier
                     .background(ContainerBackground, RoundedCornerShape(10.dp))
@@ -114,7 +119,7 @@ fun Products() {
                 if (products.isEmpty()) {
                     Text("No products yet", color = Color.Gray)
                 } else {
-                    for (product in products) {
+                    products.forEach { product ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -130,34 +135,30 @@ fun Products() {
             }
         }
 
-        // Modal for adding product
         Modal(
             open = isOpen,
             onClose = { isOpen = false },
             title = "Add a product",
             onSubmit = {
-                // Extract form values
                 val name = fields[0].value as String
                 val calories = (fields[1].value as Number).toInt()
                 val protein = (fields[2].value as Number).toFloat()
                 val carbs = (fields[3].value as Number).toFloat()
                 val fats = (fields[4].value as Number).toFloat()
 
-                // Insert product using coroutine (non-blocking)
-                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                    val newProduct = com.example.salubris.database.entities.Product(
+                scope.launch {
+                    val newProduct = Product(
                         name = name,
                         calories = calories,
                         protein = protein,
                         carbs = carbs,
                         fats = fats
                     )
-                    productDao.insert(newProduct)
+                    repository.insertProduct(newProduct)
                 }
 
                 isOpen = false
 
-                // Clear form safely
                 fields.forEachIndexed { index, form ->
                     fields[index] = when (form.type) {
                         FieldType.STRING -> form.copy(value = "")
