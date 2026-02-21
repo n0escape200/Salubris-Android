@@ -5,13 +5,16 @@ import android.R
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Flatware
 import androidx.compose.material3.*
@@ -20,17 +23,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.ui.theme.ContainerBackground
-import com.example.salubris.ui.theme.caloriesColor
-import com.example.salubris.ui.theme.carbsColor
-import com.example.salubris.ui.theme.fatsColor
-import com.example.salubris.ui.theme.mealColor
-import com.example.salubris.ui.theme.productColor
-import com.example.salubris.ui.theme.proteinColor
+import com.example.salubris.database.entities.Product
+import com.example.salubris.ui.components.Input
+import com.example.salubris.ui.theme.*
 import com.example.salubris.viewmodels.ProductViewModel
 import com.example.salubris.viewmodels.SettingViewModel
 import com.example.salubris.viewmodels.productViewModelFactory
@@ -44,38 +45,26 @@ import java.util.*
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Macros(
-    productViewModel: ProductViewModel = viewModel(
-        factory = productViewModelFactory(LocalContext.current)
-    ),
-    settingViewModel: SettingViewModel = viewModel(
-        factory = settingsViewModelFactory(LocalContext.current)
-    ),
+    productViewModel: ProductViewModel = viewModel(factory = productViewModelFactory(LocalContext.current)),
+    settingViewModel: SettingViewModel = viewModel(factory = settingsViewModelFactory(LocalContext.current)),
 ) {
-
     val todayMillis = remember {
-        LocalDate.now()
-            .atStartOfDay(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+        LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
 
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = todayMillis
-    )
-
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = todayMillis)
     var showDatePicker by remember { mutableStateOf(false) }
-
     val selectedDateText = remember(datePickerState.selectedDateMillis) {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            .format(Date(datePickerState.selectedDateMillis!!))
+        SimpleDateFormat(
+            "dd/MM/yyyy",
+            Locale.getDefault()
+        ).format(Date(datePickerState.selectedDateMillis!!))
     }
     var openMeals by remember { mutableStateOf(false) }
     var openProducts by remember { mutableStateOf(false) }
 
-
-    Box(){
+    Box {
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
@@ -87,18 +76,28 @@ fun Macros(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Flatware, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.Default.Flatware,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
                     Spacer(Modifier.width(6.dp))
                     Text("Meals", color = Color.White)
                 }
                 Text("/", color = Color.White, fontWeight = FontWeight.W800, fontSize = 30.sp)
                 Button(
-                    onClick = {openProducts = true},
+                    onClick = { openProducts = true },
                     colors = ButtonDefaults.buttonColors(mealColor),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Fastfood, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.Default.Fastfood,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
                     Spacer(Modifier.width(6.dp))
                     Text("Products", color = Color.White)
                 }
@@ -109,7 +108,6 @@ fun Macros(
                     .fillMaxWidth()
                     .background(ContainerBackground, RoundedCornerShape(10.dp))
             ) {
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
@@ -123,11 +121,8 @@ fun Macros(
                         tint = Color.White,
                         modifier = Modifier.size(30.dp)
                     )
-
                     Spacer(Modifier.width(10.dp))
-
                     Text("Macros for ", color = Color.White, fontWeight = FontWeight.W600)
-
                     Text(
                         text = selectedDateText,
                         color = Color.White,
@@ -136,8 +131,7 @@ fun Macros(
                             .padding(start = 6.dp)
                             .background(Color.DarkGray, RoundedCornerShape(6.dp))
                             .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .clickable { showDatePicker = true }
-                    )
+                            .clickable { showDatePicker = true })
                 }
 
                 Row(
@@ -159,37 +153,48 @@ fun Macros(
                     .padding(10.dp)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
-
                 verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-//                repeat(30){
-//                    MacroLine()
-//                }
-            }
+            ) {}
         }
+
         Modal(
             open = openProducts,
-            onClose = {openProducts = false},
+            onClose = { openProducts = false },
             onSubmit = {},
             title = "Add a product"
         ) {
-            val options = listOf("Option 1", "Option 2", "Option 3")
+            val options by productViewModel.products.collectAsState()
             var expanded by remember { mutableStateOf(false) }
-            var selectedText by remember { mutableStateOf(options[0]) }
+            var selectedProduct by remember { mutableStateOf<Product?>(null) }
+            var amount by remember { mutableStateOf("") }
+            val mainGoal = settingViewModel.getSettingByName("goal_main")
+
+            var calories by remember { mutableFloatStateOf(0f) }
+            var protein by remember { mutableFloatStateOf(0f) }
+            var carbs by remember { mutableFloatStateOf(0f) }
+            var fats by remember { mutableFloatStateOf(0f) }
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
+                onExpandedChange = { expanded = !expanded }) {
                 OutlinedTextField(
-                    value = selectedText,
+                    value = selectedProduct?.name ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Select Option") },
+                    label = { Text("Select a product") },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        if (selectedProduct != null) {
+                            IconButton(onClick = { selectedProduct = null }) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear selection",
+                                    tint = Color.White
+                                )
+                            }
+                        }
                     },
-                    modifier = Modifier.menuAnchor(),
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -206,17 +211,85 @@ fun Macros(
                     onDismissRequest = { expanded = false },
                     modifier = Modifier
                         .background(ContainerBackground)
+                        .border(0.5.dp, Color.White)
                 ) {
-                    options.forEach { selectionOption ->
+                    if (options.isNotEmpty()) {
+                        options.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        selectionOption.name,
+                                        color = Color.White
+                                    )
+                                },
+                                onClick = {
+                                    selectedProduct = selectionOption
+                                    expanded = false
+                                },
+                                modifier = Modifier.background(ContainerBackground)
+                            )
+                        }
+                    } else {
                         DropdownMenuItem(
-                            text = { Text(text = selectionOption, color = Color.White) },
-                            onClick = {
-                                selectedText = selectionOption
-                                expanded = false
-                            },
-                            modifier = Modifier
-                                .background(ContainerBackground)
+                            text = { Text("No options", color = Color(157, 157, 157, 255)) },
+                            onClick = { expanded = false },
+                            modifier = Modifier.background(ContainerBackground)
                         )
+                    }
+                }
+            }
+
+            if (selectedProduct != null) {
+                ProductNutritionLabel(selectedProduct!!)
+                Input("Amount", amount, onChange = { value ->
+                    amount = value
+                    val safeAmount = (value.toFloatOrNull() ?: 0f) / 100
+                    calories = selectedProduct!!.calories * safeAmount
+                    protein = selectedProduct!!.protein * safeAmount
+                    carbs = selectedProduct!!.carbs * safeAmount
+                    fats = selectedProduct!!.fats * safeAmount
+                }, keyboardType = KeyboardType.Number)
+
+                if (mainGoal == null) {
+                    Text(
+                        "No goal set",
+                        color = Color.White,
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                    Text(
+                        "We recommend that you set a main goal inside the settings section for a better experience",
+                        color = Color(204, 204, 204, 255),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.W600,
+                        fontStyle = FontStyle.Italic
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                Color(73, 73, 73, 255), RoundedCornerShape(10.dp)
+                            )
+                            .padding(10.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            "Preview macro intake",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.W600
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            MacroBadge("Kcal", calories.toString(), caloriesColor)
+                            MacroBadge("Protein", protein.toString(), proteinColor)
+                            MacroBadge("Carbs", carbs.toString(), carbsColor)
+                            MacroBadge("Fats", fats.toString(), fatsColor)
+                        }
                     }
                 }
             }
@@ -224,23 +297,12 @@ fun Macros(
     }
 
     if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(
-                state = datePickerState,
-                showModeToggle = false
-            )
+        DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
+            TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+        }, dismissButton = {
+            TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+        }) {
+            DatePicker(state = datePickerState, showModeToggle = false)
         }
     }
 }
@@ -250,9 +312,46 @@ private fun MacroBadge(label: String, value: String, color: Color) {
     Column(
         modifier = Modifier
             .background(color, RoundedCornerShape(5.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(label, color = Color.White)
         Text(value, color = Color.White, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun ProductNutritionLabel(product: Product) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(45, 45, 45), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White, RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            "Nutrition per 100g",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Calories", color = Color.White)
+            Text("${product.calories}", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Protein", color = Color.White)
+            Text("${product.protein} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Carbs", color = Color.White)
+            Text("${product.carbs} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Fats", color = Color.White)
+            Text("${product.fats} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
     }
 }
