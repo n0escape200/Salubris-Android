@@ -9,11 +9,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 
 @Composable
-fun Input(label: String, value: String, onChange: (String) -> Unit){
+fun Input(label: String, value: String, onChange: (String) -> Unit, onPress: (() -> Unit)? = null){
     val focusManager = LocalFocusManager.current
     OutlinedTextField(
         value = value,
@@ -33,6 +35,7 @@ fun Input(label: String, value: String, onChange: (String) -> Unit){
         keyboardActions = KeyboardActions(
             onDone = {
                 focusManager.clearFocus()
+                onPress?.invoke()
             }
         ),
         modifier = Modifier
