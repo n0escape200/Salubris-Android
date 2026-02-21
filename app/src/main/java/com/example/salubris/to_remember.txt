@@ -1,0 +1,11 @@
+Settings fields for the app:
+
+user_name -> Holds the name of the user
+user_age -> Holds the age of the user
+user_height -> Holds the height of the user
+user_weight -> Holds the weight of the user
+
+goal_main -> Holds the type of goal the user has set. (losing gaining weight)
+goal_calories -> Holds the amount of calories the user wants to consume on a daily basis
+goal_water -> Holds the amount of water the user wants to consume daily
+goal_steps -> Holds the number of steps the user want to achieve daily

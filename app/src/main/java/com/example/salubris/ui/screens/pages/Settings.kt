@@ -266,7 +266,7 @@ fun Settings(
                 },
                 onPress = {
                     scope.launch {
-                        viewModel.saveSetting("user_weight", (goalData[0].value as Int).toString())
+                        viewModel.saveSetting("goal_calories", (goalData[0].value as Int).toString())
                     }
                 }
             )
@@ -279,7 +279,7 @@ fun Settings(
                 },
                 onPress = {
                     scope.launch {
-                        viewModel.saveSetting("user_weight", (goalData[1].value as Int).toString())
+                        viewModel.saveSetting("goal_water", (goalData[1].value as Int).toString())
                     }
                 }
             )
@@ -292,7 +292,7 @@ fun Settings(
                 },
                 onPress = {
                     scope.launch {
-                        viewModel.saveSetting("user_weight", (goalData[2].value as Int).toString())
+                        viewModel.saveSetting("goal_steps", (goalData[2].value as Int).toString())
                     }
                 }
             )
