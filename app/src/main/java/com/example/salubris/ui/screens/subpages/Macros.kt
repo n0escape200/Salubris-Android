@@ -1,7 +1,6 @@
 package com.example.salubris.ui.screens.subpages
 
 import Modal
-import android.R
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -32,8 +31,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.entities.Product
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.*
+import com.example.salubris.utils.truncate2Decimals
+import com.example.salubris.viewmodels.MacroViewModel
 import com.example.salubris.viewmodels.ProductViewModel
 import com.example.salubris.viewmodels.SettingViewModel
+import com.example.salubris.viewmodels.macroViewModelFactory
 import com.example.salubris.viewmodels.productViewModelFactory
 import com.example.salubris.viewmodels.settingsViewModelFactory
 import java.text.SimpleDateFormat
@@ -47,6 +49,7 @@ import java.util.*
 fun Macros(
     productViewModel: ProductViewModel = viewModel(factory = productViewModelFactory(LocalContext.current)),
     settingViewModel: SettingViewModel = viewModel(factory = settingsViewModelFactory(LocalContext.current)),
+    macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current))
 ) {
     val todayMillis = remember {
         LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -56,8 +59,7 @@ fun Macros(
     var showDatePicker by remember { mutableStateOf(false) }
     val selectedDateText = remember(datePickerState.selectedDateMillis) {
         SimpleDateFormat(
-            "dd/MM/yyyy",
-            Locale.getDefault()
+            "dd/MM/yyyy", Locale.getDefault()
         ).format(Date(datePickerState.selectedDateMillis!!))
     }
     var openMeals by remember { mutableStateOf(false) }
@@ -156,27 +158,31 @@ fun Macros(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {}
         }
+        val options by productViewModel.products.collectAsState()
+        var expanded by remember { mutableStateOf(false) }
+        var selectedProduct by remember { mutableStateOf<Product?>(null) }
+        var amount by remember { mutableStateOf("") }
+        val mainGoal = settingViewModel.getSettingByName("goal_main")
+
+        var calories by remember { mutableFloatStateOf(0f) }
+        var protein by remember { mutableFloatStateOf(0f) }
+        var carbs by remember { mutableFloatStateOf(0f) }
+        var fats by remember { mutableFloatStateOf(0f) }
 
         Modal(
             open = openProducts,
             onClose = { openProducts = false },
-            onSubmit = {},
+            onSubmit = {
+                if(selectedProduct != null && amount != ""){
+                    macroViewModel.saveMacroLine(selectedProduct!!.uid.toString(),amount.toFloat(),System.currentTimeMillis())
+                    openProducts = false
+                }
+            },
             title = "Add a product"
         ) {
-            val options by productViewModel.products.collectAsState()
-            var expanded by remember { mutableStateOf(false) }
-            var selectedProduct by remember { mutableStateOf<Product?>(null) }
-            var amount by remember { mutableStateOf("") }
-            val mainGoal = settingViewModel.getSettingByName("goal_main")
-
-            var calories by remember { mutableFloatStateOf(0f) }
-            var protein by remember { mutableFloatStateOf(0f) }
-            var carbs by remember { mutableFloatStateOf(0f) }
-            var fats by remember { mutableFloatStateOf(0f) }
 
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }) {
+                expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                 OutlinedTextField(
                     value = selectedProduct?.name ?: "",
                     onValueChange = {},
@@ -194,7 +200,9 @@ fun Macros(
                             }
                         }
                     },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -217,16 +225,13 @@ fun Macros(
                         options.forEach { selectionOption ->
                             DropdownMenuItem(
                                 text = {
-                                    Text(
-                                        selectionOption.name,
-                                        color = Color.White
-                                    )
-                                },
-                                onClick = {
-                                    selectedProduct = selectionOption
-                                    expanded = false
-                                },
-                                modifier = Modifier.background(ContainerBackground)
+                                Text(
+                                    selectionOption.name, color = Color.White
+                                )
+                            }, onClick = {
+                                selectedProduct = selectionOption
+                                expanded = false
+                            }, modifier = Modifier.background(ContainerBackground)
                             )
                         }
                     } else {
@@ -285,13 +290,20 @@ fun Macros(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            MacroBadge("Kcal", calories.toString(), caloriesColor)
-                            MacroBadge("Protein", protein.toString(), proteinColor)
-                            MacroBadge("Carbs", carbs.toString(), carbsColor)
-                            MacroBadge("Fats", fats.toString(), fatsColor)
+                            MacroBadge("Kcal", calories.truncate2Decimals().toString(), caloriesColor)
+                            MacroBadge("Protein", protein.truncate2Decimals().toString(), proteinColor)
+                            MacroBadge("Carbs", carbs.truncate2Decimals().toString(), carbsColor)
+                            MacroBadge("Fats", fats.truncate2Decimals().toString(), fatsColor)
                         }
                     }
                 }
+            } else {
+                Text(
+                    "Please select a product to continue",
+                    color = Color(154, 154, 154, 255),
+                    fontSize = 17.sp,
+                    fontStyle = FontStyle.Italic
+                )
             }
         }
     }

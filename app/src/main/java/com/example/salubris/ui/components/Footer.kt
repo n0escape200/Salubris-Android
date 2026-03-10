@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.MainContainerBorder
 
@@ -68,7 +70,9 @@ fun Footer(currentPage: String, onItemSelected: (String) -> Unit) {
                     )
                     Text(
                         text = item.label,
-                        color = if (isSelected) Color.Black else Color.White
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.W600
                     )
                 }
             }

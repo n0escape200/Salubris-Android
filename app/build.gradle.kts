@@ -66,4 +66,5 @@ dependencies {
     implementation("androidx.room:room-runtime:${room_version}")
     ksp("androidx.room:room-compiler:$room_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }
