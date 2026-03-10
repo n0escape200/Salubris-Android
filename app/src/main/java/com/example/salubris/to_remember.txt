@@ -9,3 +9,12 @@ goal_main -> Holds the type of goal the user has set. (losing gaining weight)
 goal_calories -> Holds the amount of calories the user wants to consume on a daily basis
 goal_water -> Holds the amount of water the user wants to consume daily
 goal_steps -> Holds the number of steps the user want to achieve daily
+
+
+For the MacroLineDao passing the date to the getMacrosOfrDay
+val dayStart = selectedDate
+    .atStartOfDay(ZoneId.systemDefault())
+    .toInstant()
+    .toEpochMilli()
+
+macroDao.getMacrosForDay(dayStart)
