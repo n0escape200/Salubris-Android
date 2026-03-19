@@ -14,14 +14,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Flatware
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +48,7 @@ import com.example.salubris.database.entities.Product
 import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.ContainerBackground
+import com.example.salubris.ui.theme.cancelColor
 import com.example.salubris.ui.theme.productColor
 import com.example.salubris.utils.FieldType
 import com.example.salubris.utils.FormData
@@ -81,6 +88,12 @@ fun Products() {
     val products by repository
         .getAllProducts()
         .collectAsState(initial = emptyList())
+    val mutableProducts = remember { mutableStateListOf<Product>() }
+
+    LaunchedEffect (products) {
+        mutableProducts.clear()
+        mutableProducts.addAll(products)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -119,20 +132,49 @@ fun Products() {
                 if (products.isEmpty()) {
                     Text("No products yet", color = Color.Gray)
                 } else {
-                    products.forEach { product ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.White, RoundedCornerShape(5.dp))
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(product.name, fontWeight = FontWeight.Bold)
-                            Text("${product.calories} kcal")
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        itemsIndexed(products) { index, product ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(100,100,100), RoundedCornerShape(5.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column() {
+                                    Text(product.name, fontWeight = FontWeight.Bold)
+                                    Row() {
+                                        Text("${product.calories} kcal")
+                                    }
+                                }
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+                                            repository.deleteProduct(product)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            color = cancelColor.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete product",
+                                        tint = cancelColor,
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+
         }
 
         Modal(
