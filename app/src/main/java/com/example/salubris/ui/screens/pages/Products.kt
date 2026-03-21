@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Flatware
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -28,11 +26,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,11 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.repositories.ProductRepository
-import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.cancelColor
 import com.example.salubris.ui.theme.productColor
@@ -54,15 +48,6 @@ import com.example.salubris.utils.FieldType
 import com.example.salubris.utils.FormData
 import com.example.salubris.utils.RenderFormFields
 import kotlinx.coroutines.launch
-
-data class ProductData(
-    val name: String,
-    val kcal: Number,
-    val protein: Number,
-    val carbs: Number,
-    val fats: Number
-)
-
 
 @Composable
 fun Products() {
