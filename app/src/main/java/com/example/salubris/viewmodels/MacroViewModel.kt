@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Macro
+import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.database.repositories.MacroRepository
 import com.example.salubris.viewmodels.SettingViewModel.OperationStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,10 +37,8 @@ class MacroViewModel(
         }
     }
 
-    fun getMacrosPerDay(day: Long){
-        viewModelScope.launch {
-            return@launch repository.getMacrosForDay(day)
-        }
+    suspend fun getMacrosPerDay(day: Long): List<MacroWithProduct> {
+        return repository.getMacrosForDay(day)
     }
 }
 

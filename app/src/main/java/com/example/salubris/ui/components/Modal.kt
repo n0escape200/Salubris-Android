@@ -24,7 +24,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.cancelColor
@@ -64,10 +72,11 @@ fun Modal(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(10.dp,10.dp,10.dp,5.dp)
                 ) {
                     Text(
-                        title, color = Color.White, fontWeight = FontWeight.W600, fontSize = 32.sp
+                        title, color = Color.White, fontWeight = FontWeight.W600, fontSize = 25.sp,textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     // Scrollable content area
@@ -90,6 +99,7 @@ fun Modal(
                             .background(
                                 ContainerBackground, RoundedCornerShape(0f, 0f, 20f, 20f)
                             ) // Same color as modal background
+                            .padding(0.dp,5.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -98,22 +108,28 @@ fun Modal(
                             Button(
                                 onClick = onClose,
                                 colors = ButtonDefaults.buttonColors(cancelColor),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.defaultMinSize(minWidth = 130.dp)
+                                modifier = Modifier.height(30.dp)
                             ) {
-                                Text("Close")
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "User icon",
+                                    tint = Color.White,
+                                )
                             }
                             Button(
                                 onClick = {
                                     onSubmit();
                                 },
                                 colors = ButtonDefaults.buttonColors(submitColor),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.defaultMinSize(minWidth = 130.dp)
+                                modifier = Modifier.height(30.dp)
                             ) {
-                                Text("Submit")
+                                Icon(
+                                    imageVector = Icons.Default.Done,
+                                    contentDescription = "User icon",
+                                    tint = Color.White,
+                                )
                             }
 
                         }

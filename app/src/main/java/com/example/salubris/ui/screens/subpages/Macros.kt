@@ -2,6 +2,7 @@ package com.example.salubris.ui.screens.subpages
 
 import Modal
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.entities.Product
+import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.*
 import com.example.salubris.utils.truncate2Decimals
@@ -39,6 +41,7 @@ import com.example.salubris.viewmodels.macroViewModelFactory
 import com.example.salubris.viewmodels.productViewModelFactory
 import com.example.salubris.viewmodels.settingsViewModelFactory
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.*
@@ -51,20 +54,49 @@ fun Macros(
     settingViewModel: SettingViewModel = viewModel(factory = settingsViewModelFactory(LocalContext.current)),
     macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current))
 ) {
-    val todayMillis = remember {
-        LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-    }
+    val todayMillis = Instant.now()
+        .atZone(ZoneId.of("UTC"))
+        .toLocalDate()
+        .atStartOfDay(ZoneId.of("UTC"))
+        .toInstant()
+        .toEpochMilli()
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = todayMillis)
     var showDatePicker by remember { mutableStateOf(false) }
-    val selectedDateText = remember(datePickerState.selectedDateMillis) {
-        SimpleDateFormat(
-            "dd/MM/yyyy", Locale.getDefault()
-        ).format(Date(datePickerState.selectedDateMillis!!))
-    }
-    var openMeals by remember { mutableStateOf(false) }
-    var openProducts by remember { mutableStateOf(false) }
 
+    val selectedDateText = remember(datePickerState.selectedDateMillis) {
+        datePickerState.selectedDateMillis?.let {
+            Instant.ofEpochMilli(it)
+                .atZone(ZoneId.systemDefault())  // convert to local timezone
+                .toLocalDate()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        } ?: ""
+    }
+
+    var openProducts by remember { mutableStateOf(false) }
+    var macros by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
+
+    LaunchedEffect(datePickerState.selectedDateMillis) {
+        val selectedDate = datePickerState.selectedDateMillis
+        if (selectedDate != null) {
+            val zone = ZoneId.systemDefault()
+
+            val startOfDay = Instant.ofEpochMilli(selectedDate)
+                .atZone(ZoneId.of("UTC"))
+                .toLocalDate()
+                .atStartOfDay(zone)
+                .toInstant()
+                .toEpochMilli()
+
+            val result = macroViewModel.getMacrosPerDay(startOfDay)
+            macros = result
+            Log.d("TAG", "Ora $startOfDay macros")
+            Log.d("TAG", "Loaded ${result.size} macros")
+            result.forEach { macro ->
+                Log.d("TAG", "Macro: $macro")
+            }
+        }
+    }
     Box {
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(
@@ -175,6 +207,7 @@ fun Macros(
             onSubmit = {
                 if(selectedProduct != null && amount != ""){
                     macroViewModel.saveMacroLine(selectedProduct!!.uid.toString(),amount.toFloat(),System.currentTimeMillis())
+                    Log.d("TAG", "Time ${Date(System.currentTimeMillis())} ")
                     openProducts = false
                 }
             },
@@ -225,13 +258,13 @@ fun Macros(
                         options.forEach { selectionOption ->
                             DropdownMenuItem(
                                 text = {
-                                Text(
-                                    selectionOption.name, color = Color.White
-                                )
-                            }, onClick = {
-                                selectedProduct = selectionOption
-                                expanded = false
-                            }, modifier = Modifier.background(ContainerBackground)
+                                    Text(
+                                        selectionOption.name, color = Color.White
+                                    )
+                                }, onClick = {
+                                    selectedProduct = selectionOption
+                                    expanded = false
+                                }, modifier = Modifier.background(ContainerBackground)
                             )
                         }
                     } else {
