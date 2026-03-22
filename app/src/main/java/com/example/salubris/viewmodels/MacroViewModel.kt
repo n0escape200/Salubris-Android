@@ -20,7 +20,7 @@ class MacroViewModel(
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     private val _error = MutableStateFlow<String?>(null)
 
-    fun saveMacroLine(productId: String, amount: Float, date: Long) {
+    fun saveMacroLine(productId: Int, amount: Float, date: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             _operationStatus.value = OperationStatus.Idle
