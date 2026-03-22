@@ -9,6 +9,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -74,7 +76,7 @@ fun Macros(
     }
 
     var openProducts by remember { mutableStateOf(false) }
-    var macros by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
+    var trackLines by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
 
     LaunchedEffect(datePickerState.selectedDateMillis) {
         val selectedDate = datePickerState.selectedDateMillis
@@ -88,13 +90,8 @@ fun Macros(
                 .toInstant()
                 .toEpochMilli()
 
-            val result = macroViewModel.getMacrosPerDay(startOfDay)
-            macros = result
-            Log.d("TAG", "Ora $startOfDay macros")
-            Log.d("TAG", "Loaded ${result.size} macros")
-            result.forEach { macro ->
-                Log.d("TAG", "Macro: $macro")
-            }
+            trackLines = macroViewModel.getMacrosPerDay(startOfDay)
+            Log.v("TAG", "$trackLines")
         }
     }
     Box {
@@ -185,10 +182,15 @@ fun Macros(
                 modifier = Modifier
                     .background(ContainerBackground, RoundedCornerShape(10.dp))
                     .padding(10.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {}
+            ) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ){
+                    
+                }
+            }
         }
         val options by productViewModel.products.collectAsState()
         var expanded by remember { mutableStateOf(false) }
@@ -206,8 +208,7 @@ fun Macros(
             onClose = { openProducts = false },
             onSubmit = {
                 if(selectedProduct != null && amount != ""){
-                    macroViewModel.saveMacroLine(selectedProduct!!.uid.toString(),amount.toFloat(),System.currentTimeMillis())
-                    Log.d("TAG", "Time ${Date(System.currentTimeMillis())} ")
+                    macroViewModel.saveMacroLine(selectedProduct!!.uid,amount.toFloat(),System.currentTimeMillis())
                     openProducts = false
                 }
             },

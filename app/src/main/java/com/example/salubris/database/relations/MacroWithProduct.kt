@@ -8,10 +8,9 @@ import com.example.salubris.database.entities.Product
 data class MacroWithProduct(
     @Embedded
     val macro: Macro,
-
     @Relation(
-        parentColumn = "productId", // the column in Macro
-        entityColumn = "uid"         // the primary key in Product
+        parentColumn = "productId",
+        entityColumn = "uid"
     )
-    val product: Product          // full product object
+    val product: Product?  // This will hold the actual Product object
 )

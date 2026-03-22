@@ -21,7 +21,7 @@ import java.sql.Date
 data class Macro(
     @PrimaryKey(autoGenerate = true)
     val uid: Int = 0,
-    @ColumnInfo("productId") val productId: String,
+    @ColumnInfo("productId") val productId: Int,
     @ColumnInfo("amount") val amount: Float,
     @ColumnInfo("date") val date: Long
 )
