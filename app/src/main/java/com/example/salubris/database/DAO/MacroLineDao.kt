@@ -1,11 +1,13 @@
 package com.example.salubris.database.DAO
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.salubris.database.entities.Macro
+import com.example.salubris.database.entities.Product
 import com.example.salubris.database.relations.MacroWithProduct
 
 @Dao
@@ -25,4 +27,7 @@ interface MacroLineDao {
         """
     )
     suspend fun getMacrosForDay(dayStart: Long): List<MacroWithProduct>
+
+    @Delete
+    suspend fun delete(macro: Macro)
 }
