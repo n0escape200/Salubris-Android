@@ -1,6 +1,7 @@
 package com.example.salubris.ui.screens.subpages
 
 import Modal
+import android.R
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -10,13 +11,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Flatware
 import androidx.compose.material3.*
@@ -28,13 +28,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.relations.MacroWithProduct
+import com.example.salubris.database.repositories.MacroRepository
+import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.*
+import com.example.salubris.utils.calculateMacrosForProduct
 import com.example.salubris.utils.truncate2Decimals
 import com.example.salubris.viewmodels.MacroViewModel
 import com.example.salubris.viewmodels.ProductViewModel
@@ -42,11 +47,9 @@ import com.example.salubris.viewmodels.SettingViewModel
 import com.example.salubris.viewmodels.macroViewModelFactory
 import com.example.salubris.viewmodels.productViewModelFactory
 import com.example.salubris.viewmodels.settingsViewModelFactory
-import java.text.SimpleDateFormat
+import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -76,10 +79,24 @@ fun Macros(
     }
 
     var openProducts by remember { mutableStateOf(false) }
-    var trackLines by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
+    var trackLines by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
+    var totalMacros by remember { mutableStateOf(mapOf(
+        "calories" to 0f,
+        "protein" to 0f,
+        "carbs" to 0f,
+        "fats" to 0f
+    ))}
+    var reload by remember { mutableStateOf(true) }
+    var macroList by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
 
-    LaunchedEffect(datePickerState.selectedDateMillis) {
+    val context = LocalContext.current
+    val database = AppDatabase.getDatabase(context)
+    val repository = remember { MacroRepository(database.macroDao()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(datePickerState.selectedDateMillis, reload) {
         val selectedDate = datePickerState.selectedDateMillis
+        trackLines = emptyList()
         if (selectedDate != null) {
             val zone = ZoneId.systemDefault()
 
@@ -90,10 +107,29 @@ fun Macros(
                 .toInstant()
                 .toEpochMilli()
 
-            trackLines = macroViewModel.getMacrosPerDay(startOfDay)
-            Log.v("TAG", "$trackLines")
+            val macros: MutableMap<String, Float> = mutableMapOf(
+                "calories" to 0f,
+                "protein" to 0f,
+                "carbs" to 0f,
+                "fats" to 0f
+            )
+            macroList = macroViewModel.getMacrosPerDay(startOfDay)
+            macroList.map { (macro, product) ->
+                val data = calculateMacrosForProduct(product!!,macro.amount).toMutableMap()
+                data["macroId"] = macro.uid.toString()
+                trackLines += data
+
+                macros["calories"] = macros["calories"]!!.plus(data["calories"]!!.toFloat())
+                macros["protein"] = macros["protein"]!!.plus(data["protein"]!!.toFloat())
+                macros["carbs"] = macros["carbs"]!!.plus(data["carbs"]!!.toFloat())
+                macros["fats"] = macros["fats"]!!.plus(data["fats"]!!.toFloat())
+
+            }
+            totalMacros= macros
         }
+        reload = false;
     }
+
     Box {
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(
@@ -171,10 +207,10 @@ fun Macros(
                         .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroBadge("Kcal", "2500", caloriesColor)
-                    MacroBadge("Protein", "2500", proteinColor)
-                    MacroBadge("Carbs", "2500", carbsColor)
-                    MacroBadge("Fats", "2500", fatsColor)
+                    MacroBadge("Kcal", totalMacros["calories"]!!.truncate2Decimals().toString(), caloriesColor)
+                    MacroBadge("Protein", totalMacros["protein"]!!.truncate2Decimals().toString(), proteinColor)
+                    MacroBadge("Carbs", totalMacros["fats"]!!.truncate2Decimals().toString(), carbsColor)
+                    MacroBadge("Fats", totalMacros["carbs"]!!.truncate2Decimals().toString(), fatsColor)
                 }
             }
 
@@ -188,7 +224,55 @@ fun Macros(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ){
-                    
+                    items(trackLines) { line ->
+                        Row(
+                            modifier = Modifier
+                                .background(Color(60,60,60), shape = RoundedCornerShape(10.dp))
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+
+                        ) {
+                            Column() {
+                                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(line["name"] ?: "", fontSize = 20.sp,
+                                        fontWeight = FontWeight.W600,
+                                        fontStyle = FontStyle.Italic,
+                                        color = Color(255,255,255))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(line["calories"]!!.toFloat().truncate2Decimals().toString(), color = caloriesColor)
+                                        Text(line["protein"]!!.toFloat().truncate2Decimals().toString(), color = proteinColor)
+                                        Text(line["carbs"]!!.toFloat().truncate2Decimals().toString(), color = carbsColor)
+                                        Text(line["fats"]!!.toFloat().truncate2Decimals().toString(), color = fatsColor)
+                                    }
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        val macroData = macroList.find { (macro, _) -> macro.uid == line["macroId"]!!.toInt() }
+                                        if(macroData != null){
+                                            repository.deleteMacro(macroData.macro)
+                                            reload = true
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        color = cancelColor.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete product",
+                                    tint = cancelColor,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -205,11 +289,17 @@ fun Macros(
 
         Modal(
             open = openProducts,
-            onClose = { openProducts = false },
+            onClose = { openProducts = false
+                        selectedProduct = null
+                        amount = ""
+                      },
             onSubmit = {
                 if(selectedProduct != null && amount != ""){
                     macroViewModel.saveMacroLine(selectedProduct!!.uid,amount.toFloat(),System.currentTimeMillis())
                     openProducts = false
+                    reload = true;
+                    selectedProduct = null;
+                    amount = "";
                 }
             },
             title = "Add a product"
