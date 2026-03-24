@@ -1,5 +1,7 @@
 package com.example.salubris.ui.screens.pages
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,24 +28,44 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.navigation.NavController
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.MainContainerBorder
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
-import java.security.KeyStore
-import android.view.LayoutInflater
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.core.view.setPadding
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.ui.theme.caloriesColor
+import com.example.salubris.utils.truncate2Decimals
+import com.example.salubris.viewmodels.MacroViewModel
+import com.example.salubris.viewmodels.macroViewModelFactory
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.*
+import java.time.Instant
+import java.time.ZoneId
 
+
+
+fun calculateTotalCalories(list: List<MacroWithProduct>): Float {
+    var total = 0f
+
+    list.map { (macro,product)->
+        total += (product?.calories!! / 100.0f) * macro.amount
+    }
+    return total
+}
 
 @Composable
-fun Header() {
+fun Header(
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -82,8 +104,20 @@ fun Header() {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TodayIntake() {
+fun TodayIntake(macroViewModel: MacroViewModel ) {
+    var macroList by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val todayMillis = Instant.now()
+            .atZone(ZoneId.of("UTC"))
+            .toLocalDate()
+            .atStartOfDay(ZoneId.of("UTC"))
+            .toInstant()
+            .toEpochMilli()
+        macroList = macroViewModel.getMacrosPerDay(todayMillis)
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -109,7 +143,7 @@ fun TodayIntake() {
         }
         Spacer(modifier = Modifier.height(20.dp))
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("317", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 40.sp)
+            Text("${calculateTotalCalories(macroList).truncate2Decimals()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 40.sp)
             Text("calories", color = Color.LightGray)
         }
     }
@@ -224,13 +258,14 @@ fun Analytics(){
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Home() {
+fun Home(macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current))) {
     Column(
         modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Header()
-        TodayIntake()
+        TodayIntake(macroViewModel)
         Analytics()
     }
 }
