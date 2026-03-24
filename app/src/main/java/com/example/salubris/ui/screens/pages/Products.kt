@@ -1,6 +1,7 @@
 package com.example.salubris.ui.screens.pages
 
 import Modal
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,15 +61,70 @@ import com.example.salubris.utils.FieldType
 import com.example.salubris.utils.FormData
 import com.example.salubris.utils.RenderFormFields
 import kotlinx.coroutines.launch
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import android.net.ConnectivityManager
+import android.content.Context
+import android.net.NetworkCapabilities
+import android.os.Build
+
+@Serializable
+data class OpenFoodFactsResponse(
+    val product: ProductData? = null
+)
+
+@Serializable
+data class ProductData(
+    @SerialName("product_name")
+    val name: String? = "",
+    val nutriments: Nutriments? = null
+)
+
+@Serializable
+data class Nutriments(
+    @SerialName("energy-kcal")
+    val energyKcal: Double? = 0.0,
+    val proteins: Double? = 0.0,
+    val carbohydrates: Double? = 0.0,
+    val fat: Double? = 0.0
+)
+
+// Helper function to check internet connectivity
+fun isInternetAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+        return when {
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
+        }
+    } else {
+        @Suppress("DEPRECATION")
+        val networkInfo = connectivityManager.activeNetworkInfo ?: return false
+        @Suppress("DEPRECATION")
+        return networkInfo.isConnected
+    }
+}
 
 @Composable
 fun Products() {
     var isOpen by remember { mutableStateOf(false) }
-    var isCameraOpen by remember { mutableStateOf(false) }
     var isScanning by remember { mutableStateOf(false) }
     var scannedBarcode by remember { mutableStateOf<String?>(null) }
     var isLookingUpProduct by remember { mutableStateOf(false) }
-
+    var showNoInternetSnackbar by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val client = HttpClient(CIO)
     val fields = remember {
         mutableStateListOf(
             FormData("Name", FieldType.STRING, ""),
@@ -97,18 +155,42 @@ fun Products() {
     // Handle barcode scan result
     LaunchedEffect(scannedBarcode) {
         if (scannedBarcode != null && isScanning) {
-            isLookingUpProduct = true
-
-            // Try to lookup product from barcode (you'll need a barcode API or local database)
-            // For now, we'll just show a dialog to add product with the barcode as name
-            scope.launch {
-                // Check if product already exists by barcode (if you have barcode field)
-                // For now, we'll open the add product modal with barcode as name
-                fields[0] = fields[0].copy(value = "Product from barcode: $scannedBarcode")
-                isOpen = true
+            // Check internet connectivity before attempting to lookup product
+            if (!isInternetAvailable(context)) {
+                showNoInternetSnackbar = true
                 isScanning = false
                 isLookingUpProduct = false
                 scannedBarcode = null
+                return@LaunchedEffect
+            }
+
+            isLookingUpProduct = true
+
+            // Try to lookup product from barcode
+            scope.launch {
+                try {
+                    val jsonString = client.get("https://world.openfoodfacts.org/api/v2/product/$scannedBarcode").bodyAsText()
+                    val response = Json { ignoreUnknownKeys = true }.decodeFromString<OpenFoodFactsResponse>(jsonString)
+                    Log.v("TAG", response.toString())
+
+                    fields[0].value = response.product?.name ?: ""
+                    fields[1].value = response.product?.nutriments?.energyKcal ?: 0.0
+                    fields[2].value = response.product?.nutriments?.proteins ?: 0.0
+                    fields[3].value = response.product?.nutriments?.carbohydrates ?: 0.0
+                    fields[4].value = response.product?.nutriments?.fat ?: 0.0
+
+                    isOpen = true
+                    isLookingUpProduct = false
+                } catch (e: Exception) {
+                    // Handle network errors
+                    Log.e("TAG", "Error fetching product: ${e.message}")
+                    showNoInternetSnackbar = true
+                    isLookingUpProduct = false
+                } finally {
+                    isScanning = false
+                    scannedBarcode = null
+                    client.close()
+                }
             }
         }
     }
@@ -143,7 +225,14 @@ fun Products() {
                 }
 
                 Button(
-                    onClick = { isScanning = true },
+                    onClick = {
+                        // Check internet connectivity before opening scanner
+                        if (isInternetAvailable(context)) {
+                            isScanning = true
+                        } else {
+                            showNoInternetSnackbar = true
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(productColor.copy(alpha = 0.8f)),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
@@ -176,7 +265,7 @@ fun Products() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(60,60,60), RoundedCornerShape(5.dp))
+                                    .background(Color(60, 60, 60), RoundedCornerShape(5.dp))
                                     .padding(8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -215,6 +304,22 @@ fun Products() {
                 }
             }
 
+        }
+
+        // Snackbar for no internet feedback
+        if (showNoInternetSnackbar) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            )
+            LaunchedEffect(showNoInternetSnackbar) {
+                snackbarHostState.showSnackbar(
+                    message = "No internet connection. Please check your network and try again."
+                )
+                showNoInternetSnackbar = false
+            }
         }
 
         Modal(
@@ -258,7 +363,6 @@ fun Products() {
         }
 
         // Barcode Scanner Modal
-        // In your Products composable, update the scanner modal:
         if (isScanning) {
             Dialog(
                 onDismissRequest = {

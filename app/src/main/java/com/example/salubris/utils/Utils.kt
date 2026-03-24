@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.Product
+import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.ZoneId
 
