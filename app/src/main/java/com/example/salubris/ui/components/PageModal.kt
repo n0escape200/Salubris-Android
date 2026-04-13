@@ -65,7 +65,7 @@ fun PageModal(tabs: Map<String, @Composable () -> Unit>) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp)
+                .padding(0.dp,0.dp,0.dp,10.dp)
         ) {
             tabs[selectedTab]?.invoke()
         }
