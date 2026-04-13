@@ -39,7 +39,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +71,8 @@ import android.net.ConnectivityManager
 import android.content.Context
 import android.net.NetworkCapabilities
 import android.os.Build
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
 
 @Serializable
 data class OpenFoodFactsResponse(
@@ -267,15 +268,42 @@ fun Products() {
                                     .fillMaxWidth()
                                     .background(Color(60, 60, 60), RoundedCornerShape(5.dp))
                                     .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text(product.name, fontWeight = FontWeight.Bold, color = Color.White)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(product.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                                     Row( horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("${product.calories}", color = caloriesColor)
-                                        Text("${product.protein}", color = proteinColor)
-                                        Text("${product.carbs}", color = carbsColor)
-                                        Text("${product.fats}", color = fatsColor)
+                                        Row(
+                                            modifier = Modifier.background(caloriesColor, shape = RoundedCornerShape(5.dp))
+                                                .padding(5.dp)
+                                        ){
+                                            Text("K:", color = Color.White)
+                                            Text("${product.calories}", color = Color.White)
+                                        }
+                                        Row(
+                                            modifier = Modifier.background(proteinColor, shape = RoundedCornerShape(5.dp))
+                                                .padding(5.dp)
+                                        ){
+                                            Text("P:", color = Color.White)
+                                            Text("${product.protein}", color = Color.White)
+                                        }
+                                        Row(
+                                            modifier = Modifier.background(carbsColor, shape = RoundedCornerShape(5.dp))
+                                                .padding(5.dp)
+                                        ){
+                                            Text("C:", color = Color.White)
+                                            Text("${product.carbs}", color = Color.White)
+                                        }
+                                        Row(
+                                            modifier = Modifier.background(fatsColor, shape = RoundedCornerShape(5.dp))
+                                                .padding(5.dp)
+                                        ){
+                                            Text("F:", color = Color.White)
+                                            Text("${product.fats}", color = Color.White)
+                                        }
                                     }
                                 }
                                 IconButton(

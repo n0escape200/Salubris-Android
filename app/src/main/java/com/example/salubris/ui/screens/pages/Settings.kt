@@ -95,7 +95,7 @@ fun Settings(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(0.dp,0.dp,0.dp,10.dp)
             .verticalScroll(rememberScrollState())
         ,
         verticalArrangement = Arrangement.spacedBy(10.dp)
