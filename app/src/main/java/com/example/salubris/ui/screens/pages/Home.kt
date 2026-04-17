@@ -45,8 +45,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.ui.theme.caloriesColor
 import com.example.salubris.utils.truncate2Decimals
-import com.example.salubris.viewmodels.MacroViewModel
-import com.example.salubris.viewmodels.macroViewModelFactory
+import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.macroViewModelFactory
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.*
 import java.time.Instant

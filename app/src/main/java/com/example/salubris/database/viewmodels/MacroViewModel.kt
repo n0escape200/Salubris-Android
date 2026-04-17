@@ -1,4 +1,4 @@
-package com.example.salubris.viewmodels;
+package com.example.salubris.database.viewmodels;
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
@@ -8,7 +8,7 @@ import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.database.repositories.MacroRepository
-import com.example.salubris.viewmodels.SettingViewModel.OperationStatus
+import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 

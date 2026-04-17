@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.work.runtime.ktx)
     val room_version = "2.8.4"
     val ktor_version= "3.4.1"
 

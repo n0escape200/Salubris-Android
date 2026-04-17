@@ -1,9 +1,7 @@
 package com.example.salubris.ui.screens.subpages
 
 import Modal
-import android.R
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,7 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,17 +33,16 @@ import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.database.repositories.MacroRepository
-import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.theme.*
 import com.example.salubris.utils.calculateMacrosForProduct
 import com.example.salubris.utils.truncate2Decimals
-import com.example.salubris.viewmodels.MacroViewModel
-import com.example.salubris.viewmodels.ProductViewModel
-import com.example.salubris.viewmodels.SettingViewModel
-import com.example.salubris.viewmodels.macroViewModelFactory
-import com.example.salubris.viewmodels.productViewModelFactory
-import com.example.salubris.viewmodels.settingsViewModelFactory
+import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.ProductViewModel
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.database.viewmodels.macroViewModelFactory
+import com.example.salubris.database.viewmodels.productViewModelFactory
+import com.example.salubris.database.viewmodels.settingsViewModelFactory
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId

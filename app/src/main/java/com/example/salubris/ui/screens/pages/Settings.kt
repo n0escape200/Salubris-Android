@@ -29,16 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.repositories.SettingRepository
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.components.Multiselect
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.utils.FieldType
 import com.example.salubris.utils.FormData
-import com.example.salubris.viewmodels.SettingViewModel
-import com.example.salubris.viewmodels.SettingViewModelFactory
-import com.example.salubris.viewmodels.settingsViewModelFactory
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.database.viewmodels.settingsViewModelFactory
 import kotlinx.coroutines.launch
 
 @Composable

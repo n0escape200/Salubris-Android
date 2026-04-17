@@ -2,10 +2,15 @@ package com.example.salubris
 
 import HomeTabsScreen
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,10 +28,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.room.Room
+import androidx.work.*
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.stepcounter.StepService
 import com.example.salubris.ui.components.Footer
+import com.example.salubris.utils.WaterResetWorker
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -34,7 +43,7 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
-    // Launcher for multiple permissions
+    // Launcher for multiple permissions (Activity Recognition + Notifications)
     private val multiplePermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -136,5 +145,91 @@ class MainActivity : ComponentActivity() {
     private fun startStepService() {
         val intent = Intent(this, StepService::class.java)
         ContextCompat.startForegroundService(this, intent)
+
+        // On Android 12+, ensure exact alarm permission is granted for midnight reset
+        requestExactAlarmPermissionIfNeeded()
+
+        // Request exemption from battery optimisation (critical for Motorola devices)
+        requestIgnoreBatteryOptimizations()
+
+        // Schedule midnight water reset using WorkManager
+        scheduleWaterResetWork()
+    }
+
+    /**
+     * For Android 12 (API 31) and above, SCHEDULE_EXACT_ALARM is a special permission
+     * that must be granted by the user via system settings.
+     */
+    private fun requestExactAlarmPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.d(TAG, "Exact alarm permission not granted. Opening system settings.")
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            } else {
+                Log.d(TAG, "Exact alarm permission already granted.")
+            }
+        }
+    }
+
+    /**
+     * Request the user to disable battery optimisation for this app.
+     * This prevents Motorola (and other manufacturers) from killing the
+     * step counter service when the app is in the background.
+     */
+    private fun requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                Log.d(TAG, "Requesting battery optimisation exemption.")
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            } else {
+                Log.d(TAG, "Already exempt from battery optimisation.")
+            }
+        }
+    }
+
+    /**
+     * Schedules a periodic WorkManager task to reset water intake at midnight every day.
+     * The worker will run once per day, with an initial delay until the next midnight.
+     */
+    private fun scheduleWaterResetWork() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .build()
+
+        val resetRequest = PeriodicWorkRequestBuilder<WaterResetWorker>(1, TimeUnit.DAYS)
+            .setConstraints(constraints)
+            .setInitialDelay(calculateDelayUntilMidnight(), TimeUnit.MILLISECONDS)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "water_reset",
+            ExistingPeriodicWorkPolicy.KEEP,
+            resetRequest
+        )
+
+        Log.d(TAG, "Water reset work scheduled with initial delay: ${calculateDelayUntilMidnight()} ms")
+    }
+
+    /**
+     * Calculates milliseconds from now until the next midnight.
+     */
+    private fun calculateDelayUntilMidnight(): Long {
+        val now = Calendar.getInstance()
+        val midnight = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return midnight.timeInMillis - now.timeInMillis
     }
 }

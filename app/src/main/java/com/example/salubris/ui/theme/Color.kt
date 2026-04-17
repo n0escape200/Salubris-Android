@@ -17,3 +17,5 @@ val productColor = Color(102, 187, 106)
 val mealColor = Color(255, 183, 77)
 val submitColor = Color(23, 208, 82, 255);
 val cancelColor = Color(182, 18, 65, 255);
+
+val waterColor = Color(66, 165, 245) // Bright blue (Material Blue 400)
