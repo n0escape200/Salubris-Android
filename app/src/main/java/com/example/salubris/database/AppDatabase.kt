@@ -7,16 +7,21 @@ import androidx.room.RoomDatabase
 import com.example.salubris.database.DAO.MacroLineDao
 import com.example.salubris.database.DAO.ProductDao
 import com.example.salubris.database.DAO.SettingDao
+import com.example.salubris.database.DAO.WaterDao
+import com.example.salubris.database.entities.DailyWaterHistory
 import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.entities.Setting
+import com.example.salubris.database.entities.WaterEntry
 
-@Database(entities = [Product::class, Setting::class, Macro::class], version = 1)
+@Database(entities = [Product::class, Setting::class, Macro::class, WaterEntry::class, DailyWaterHistory::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao
     abstract fun settingDao(): SettingDao
     abstract fun macroDao(): MacroLineDao
+    abstract fun waterDao(): WaterDao
+
 
     companion object {
         @Volatile

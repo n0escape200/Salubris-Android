@@ -25,6 +25,12 @@
         tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
+    <!-- Exact alarm for midnight reset (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Auto‑restart after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -45,10 +51,26 @@
             </intent-filter>
         </activity>
 
+        <!-- Step Counter Foreground Service -->
         <service
             android:name=".stepcounter.StepService"
+            android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="health" />
+
+        <!-- Midnight Reset Trigger -->
+        <receiver
+            android:name=".stepcounter.MidnightResetReceiver"
+            android:exported="false" />
+
+        <!-- Auto‑start after Boot -->
+        <receiver
+            android:name=".stepcounter.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

@@ -1,4 +1,4 @@
-package com.example.salubris.viewmodels
+package com.example.salubris.database.viewmodels
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
