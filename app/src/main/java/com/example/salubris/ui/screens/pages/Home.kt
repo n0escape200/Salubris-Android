@@ -1,20 +1,11 @@
 package com.example.salubris.ui.screens.pages
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -22,50 +13,42 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.TrackedItem
+import com.example.salubris.database.viewmodels.macroViewModelFactory
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.MainContainerBorder
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.relations.MacroWithProduct
 import com.example.salubris.ui.theme.caloriesColor
 import com.example.salubris.utils.truncate2Decimals
-import com.example.salubris.database.viewmodels.MacroViewModel
-import com.example.salubris.database.viewmodels.macroViewModelFactory
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.data.*
-import java.time.Instant
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
-
-
-fun calculateTotalCalories(list: List<MacroWithProduct>): Float {
-    var total = 0f
-
-    list.map { (macro,product)->
-        total += (product?.calories!! / 100.0f) * macro.amount
-    }
-    return total
+fun calculateTotalCalories(list: List<TrackedItem>): Float {
+    return list.fold(0f) { total, item -> total + item.calories }
 }
 
 @Composable
-fun Header(
-) {
+fun Header() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -76,9 +59,7 @@ fun Header(
         Row {
             Box(
                 modifier = Modifier
-                    .border(
-                        1.dp, Color(77, 184, 255), shape = RoundedCornerShape(50)
-                    )
+                    .border(1.dp, Color(77, 184, 255), shape = RoundedCornerShape(50))
                     .padding(7.dp)
             ) {
                 Icon(
@@ -88,45 +69,36 @@ fun Header(
                     modifier = Modifier.size(30.dp)
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)
-            ) {
+            Column(modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)) {
                 Text("Welcome back", color = Color.White)
-                Text(
-                    "User", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp
-                )
+                Text("User", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
             }
         }
     }
 }
 
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TodayIntake(macroViewModel: MacroViewModel ) {
-    var macroList by remember { mutableStateOf<List<MacroWithProduct>>(emptyList()) }
+fun TodayIntake(macroViewModel: MacroViewModel) {
+    var trackedItems by remember { mutableStateOf<List<TrackedItem>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        val todayMillis = Instant.now()
-            .atZone(ZoneId.of("UTC"))
-            .toLocalDate()
-            .atStartOfDay(ZoneId.of("UTC"))
+        val todayMillis = LocalDate.now()
+            .atStartOfDay(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
-        macroList = macroViewModel.getMacrosPerDay(todayMillis)
+        trackedItems = macroViewModel.getTrackedItemsForDay(todayMillis)
+        Log.d("TodayIntake", "Today's calories: ${calculateTotalCalories(trackedItems)}")
     }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(color = ContainerBackground, shape = MainContainerBorder)
             .padding(20.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.LocalFireDepartment,
                 contentDescription = "Flame",
@@ -143,80 +115,71 @@ fun TodayIntake(macroViewModel: MacroViewModel ) {
         }
         Spacer(modifier = Modifier.height(20.dp))
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${calculateTotalCalories(macroList).truncate2Decimals()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 40.sp)
+            Text(
+                "${calculateTotalCalories(trackedItems).truncate2Decimals()}",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 40.sp
+            )
             Text("calories", color = Color.LightGray)
         }
     }
 }
 
-
-
 @Composable
-fun SimpleLineChart(modifier: Modifier = Modifier) {
+fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .clip(RoundedCornerShape(16.dp))       // Rounded corners
-            .background(Color(0xFF1E1E1E))         // Chart background color
-            .border(1.dp, Color(0xFF4DB8FF), RoundedCornerShape(16.dp)) // Border
+            .height(200.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF1E1E1E))
+            .border(1.dp, Color(0xFF4DB8FF), RoundedCornerShape(16.dp))
     ) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 LineChart(context).apply {
-
-                    val entries = listOf(
-                        Entry(0f, 3f),
-                        Entry(1f, 5f),
-                        Entry(2f, 2f),
-                        Entry(3f, 8f),
-                        Entry(4f, 4f)
-                    )
-
-                    val dataSet = LineDataSet(entries, "Sample Data").apply {
+                    val entries = weeklyData.mapIndexed { index, value ->
+                        Entry(index.toFloat(), value)
+                    }
+                    val dataSet = LineDataSet(entries, "Calories").apply {
                         lineWidth = 3f
-                        enableDashedLine(10f, 10f, 0f)
                         setDrawCircles(true)
                         circleRadius = 5f
                         setDrawCircleHole(false)
                         color = android.graphics.Color.parseColor("#4DB8FF")
                         setCircleColor(android.graphics.Color.WHITE)
-                        setDrawValues(false)
+                        setDrawValues(true)
+                        valueTextSize = 12f
+                        valueTextColor = android.graphics.Color.WHITE
                     }
-
                     data = LineData(dataSet)
-
-                    // X axis
                     xAxis.apply {
-                        position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                        position = XAxis.XAxisPosition.BOTTOM
                         setDrawGridLines(false)
                         textColor = android.graphics.Color.WHITE
-                        textSize = 16f
+                        textSize = 12f
                         granularity = 1f
                         valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                            private val days = listOf("M", "T", "W", "T", "F", "S", "S")
+                            private val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
                             override fun getFormattedValue(value: Float): String {
-                                return days.getOrNull(value.toInt()) ?: ""
+                                val index = value.toInt()
+                                return if (index in days.indices) days[index] else ""
                             }
                         }
                     }
-
-                    // Left axis
                     axisLeft.apply {
-                        setDrawGridLines(false)
+                        setDrawGridLines(true)
                         textColor = android.graphics.Color.WHITE
-                        textSize = 16f
+                        textSize = 12f
+                        axisMinimum = 0f
                     }
                     axisRight.isEnabled = false
-
-                    // Padding inside chart
-                    setExtraOffsets(16f, 16f, 16f, 24f)
-
+                    setExtraOffsets(16f, 16f, 16f, 16f)
                     description.isEnabled = false
                     legend.isEnabled = false
                     setTouchEnabled(false)
-
                     invalidate()
                 }
             }
@@ -224,11 +187,8 @@ fun SimpleLineChart(modifier: Modifier = Modifier) {
     }
 }
 
-
-
-
 @Composable
-fun Analytics(){
+fun Analytics(weeklyCalories: List<Float>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,24 +196,25 @@ fun Analytics(){
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row{
+        Row {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                 contentDescription = "Analytics",
                 tint = Color(0, 255, 102),
                 modifier = Modifier.size(30.dp)
             )
-            Text("Analytics",
-                modifier = Modifier
-                    .padding(10.dp,0.dp,0.dp,0.dp),
+            Text(
+                "Analytics",
+                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
                 color = Color.White,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold)
+                fontWeight = FontWeight.SemiBold
+            )
         }
         Column {
             Text("Weekly caloric intake", color = Color.White, fontWeight = FontWeight.W500)
             Spacer(modifier = Modifier.height(10.dp))
-            SimpleLineChart()
+            SimpleLineChart(weeklyCalories)
         }
     }
 }
@@ -261,11 +222,32 @@ fun Analytics(){
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Home(macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current))) {
+    var weeklyCalories by remember { mutableStateOf<List<Float>>(listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val today = LocalDate.now()
+            val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+            val days = (0..6).map { monday.plusDays(it.toLong()) }
+            val zone = ZoneId.systemDefault()
+            val results = mutableListOf<Float>()
+            for (date in days) {
+                val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val items = macroViewModel.getTrackedItemsForDay(startOfDay)
+                val totalCal = items.sumOf { it.calories.toDouble() }.toFloat()
+                Log.d("WeeklyChart", "Date: $date, startOfDay: $startOfDay, totalCal: $totalCal")
+                results.add(totalCal)
+            }
+            weeklyCalories = results
+        }
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Header()
         TodayIntake(macroViewModel)
-        Analytics()
+        Analytics(weeklyCalories)
     }
 }
