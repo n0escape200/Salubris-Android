@@ -12,5 +12,5 @@ data class MacroWithProduct(
         parentColumn = "productId",
         entityColumn = "uid"
     )
-    val product: Product?  // This will hold the actual Product object
+    val product: Product?
 )

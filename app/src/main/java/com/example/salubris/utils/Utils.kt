@@ -2,6 +2,21 @@ package com.example.salubris.utils
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.Product
 import kotlinx.serialization.Serializable
@@ -22,12 +37,42 @@ fun getStartOfDay(timestamp: Long): Long {
         .toEpochMilli()
 }
 
-fun calculateMacrosForProduct(product: Product, quantity: Float): Map<String, String> {
+fun calculateMacrosForProduct(product: Product, amountInGrams: Float): Map<String, Float> {
+    val factor = amountInGrams / 100f
     return mapOf(
-        "name" to product.name,
-        "calories" to ((product.calories / 100) * quantity).toString(),
-        "protein" to ((product.protein / 100) * quantity).toString(),
-        "carbs" to ((product.carbs / 100) * quantity).toString(),
-        "fats" to ((product.fats / 100) * quantity).toString(),
+        "calories" to product.calories * factor,
+        "protein" to product.protein * factor,
+        "carbs" to product.carbs * factor,
+        "fats" to product.fats * factor
     )
+}
+
+@Composable
+fun ProductNutritionLabel(product: Product) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(45, 45, 45), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White, RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("Nutrition per 100g", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Calories", color = Color.White)
+            Text("${product.calories}", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Protein", color = Color.White)
+            Text("${product.protein} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Carbs", color = Color.White)
+            Text("${product.carbs} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Fats", color = Color.White)
+            Text("${product.fats} g", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+    }
 }
