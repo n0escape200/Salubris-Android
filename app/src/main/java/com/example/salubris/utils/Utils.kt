@@ -76,3 +76,16 @@ fun ProductNutritionLabel(product: Product) {
         }
     }
 }
+
+fun Any?.toFloatSafe(): Float {
+    return when (this) {
+        is Float -> this
+        is Double -> this.toFloat()
+        is Int -> this.toFloat()
+        is String -> this
+            .replace(",", ".") // EU format support
+            .trim()
+            .toFloatOrNull() ?: 0f
+        else -> 0f
+    }
+}

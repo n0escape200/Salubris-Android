@@ -29,9 +29,9 @@ fun RenderFormFields(fields:  SnapshotStateList<FormData>, ){
                 FieldType.NUMBER -> {
                     Input(
                         label = field.name,
-                        value = (field.value as? Number ?: 0).toString(),
+                        value = (field.value as? Number ?: "").toString(),
                         onChange = { newValue ->
-                            val numberValue = newValue.toIntOrNull() ?: 0
+                            val numberValue = newValue.toIntOrNull() ?: ""
                             fields[index] = field.copy(value = numberValue)
                         },
                         keyboardType = KeyboardType.Number

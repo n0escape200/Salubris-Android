@@ -60,6 +60,7 @@ import com.example.salubris.database.viewmodels.MealViewModel
 import com.example.salubris.database.viewmodels.MealViewModelFactory
 import com.example.salubris.database.viewmodels.ProductViewModel
 import com.example.salubris.database.viewmodels.productViewModelFactory
+import com.example.salubris.ui.components.FilterableDropdown
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.cancelColor
 import com.example.salubris.ui.theme.productColor
@@ -89,7 +90,6 @@ fun Meals() {
     var mealName by remember { mutableStateOf("") }
     val selectedProducts = remember { mutableStateListOf<ProductWithQuantity>() }
 
-    var expanded by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<com.example.salubris.database.entities.Product?>(null) }
     var quantityInput by remember { mutableStateOf("100") }
 
@@ -189,14 +189,7 @@ fun Meals() {
 
                 Text("Products", fontWeight = FontWeight.Bold, color = Color.White)
 
-                // Show selected products count for debugging
-                Text(
-                    text = "Selected products: ${selectedProducts.size}",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.6f)
-                )
-
-                // Highlighted selected product rows
+                // Show selected products list
                 selectedProducts.forEachIndexed { index, productWithQty ->
                     Row(
                         modifier = Modifier
@@ -232,73 +225,19 @@ fun Meals() {
                     }
                 }
 
-                // Product picker dropdown
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedProduct?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Select a product") },
-                        trailingIcon = {
-                            if (selectedProduct != null) {
-                                IconButton(onClick = { selectedProduct = null }) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color.White
-                                    )
-                                }
-                            } else {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                            }
-                        },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color.White,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                            focusedLabelColor = Color.White,
-                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                            cursorColor = Color.White
-                        ),
-                        singleLine = true
-                    )
+                // Reusable FilterableDropdown for product selection
+                FilterableDropdown(
+                    options = products,
+                    selectedItem = selectedProduct,
+                    onItemSelected = { product ->
+                        selectedProduct = product
+                    },
+                    label = "Select a product",
+                    displayText = { it.name },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier
-                            .background(ContainerBackground)
-                            .border(0.5.dp, Color.White)
-                    ) {
-                        if (products.isNotEmpty()) {
-                            products.forEach { product ->
-                                DropdownMenuItem(
-                                    text = { Text(product.name, color = Color.White) },
-                                    onClick = {
-                                        selectedProduct = product
-                                        expanded = false
-                                        Log.d("Meals", "Selected product: ${product.name}")
-                                    },
-                                    modifier = Modifier.background(ContainerBackground)
-                                )
-                            }
-                        } else {
-                            DropdownMenuItem(
-                                text = { Text("No products", color = Color.Gray) },
-                                onClick = { expanded = false }
-                            )
-                        }
-                    }
-                }
-
-                // Quantity input (numeric)
+                // Quantity input (g)
                 OutlinedTextField(
                     value = quantityInput,
                     onValueChange = { quantityInput = it },
@@ -317,23 +256,25 @@ fun Meals() {
                     )
                 )
 
-                // Nutrition preview
+                // Nutrition preview for selected product
                 if (selectedProduct != null) {
                     ProductNutritionLabel(selectedProduct!!)
                 }
 
+                // Add product button
                 Button(
                     onClick = {
                         val quantity = quantityInput.toFloatOrNull()
                         if (selectedProduct != null && quantity != null && quantity > 0) {
-                            // Always add a new entry, even if same product already exists
                             selectedProducts.add(ProductWithQuantity(selectedProduct!!, quantity))
                             selectedProduct = null
                             quantityInput = "100"
                         }
                     },
                     enabled = selectedProduct != null && quantityInput.toFloatOrNull() != null,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = productColor,
                         disabledContainerColor = productColor.copy(alpha = 0.5f)
@@ -388,14 +329,12 @@ fun MealItem(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f)
         ) {
-            // Meal name
             Text(
                 mealWithProducts.meal.name,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 fontSize = 20.sp
             )
-            // Metadata: number of ingredients & total weight
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     "${mealWithProducts.products.size} ingredient${if (mealWithProducts.products.size != 1) "s" else ""}",
@@ -409,7 +348,6 @@ fun MealItem(
                     fontSize = 12.sp
                 )
             }
-            // Macros per 100g
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("K: ${per100Calories.truncate2Decimals()}", color = caloriesColor, fontSize = 14.sp)
                 Text("P: ${per100Protein.truncate2Decimals()}", color = proteinColor, fontSize = 14.sp)
@@ -418,7 +356,6 @@ fun MealItem(
             }
             Text("per 100g", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
         }
-        // Delete button
         IconButton(
             onClick = onDelete,
             modifier = Modifier

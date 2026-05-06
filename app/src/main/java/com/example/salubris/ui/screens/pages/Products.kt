@@ -73,6 +73,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.sp
+import com.example.salubris.utils.toFloatSafe
 
 @Serializable
 data class OpenFoodFactsResponse(
@@ -129,10 +130,10 @@ fun Products() {
     val fields = remember {
         mutableStateListOf(
             FormData("Name", FieldType.STRING, ""),
-            FormData("Calories", FieldType.NUMBER, 0),
-            FormData("Protein", FieldType.NUMBER, 0),
-            FormData("Carbs", FieldType.NUMBER, 0),
-            FormData("Fats", FieldType.NUMBER, 0)
+            FormData("Calories", FieldType.NUMBER, ""),
+            FormData("Protein", FieldType.NUMBER, ""),
+            FormData("Carbs", FieldType.NUMBER, ""),
+            FormData("Fats", FieldType.NUMBER, "")
         )
     }
 
@@ -175,10 +176,10 @@ fun Products() {
                     Log.v("TAG", response.toString())
 
                     fields[0].value = response.product?.name ?: ""
-                    fields[1].value = response.product?.nutriments?.energyKcal ?: 0.0
-                    fields[2].value = response.product?.nutriments?.proteins ?: 0.0
-                    fields[3].value = response.product?.nutriments?.carbohydrates ?: 0.0
-                    fields[4].value = response.product?.nutriments?.fat ?: 0.0
+                    fields[1].value = response.product?.nutriments?.energyKcal ?: 0
+                    fields[2].value = response.product?.nutriments?.proteins ?: 0
+                    fields[3].value = response.product?.nutriments?.carbohydrates ?: 0
+                    fields[4].value = response.product?.nutriments?.fat ?: 0
 
                     isOpen = true
                     isLookingUpProduct = false
@@ -359,19 +360,20 @@ fun Products() {
             title = "Add a product",
             onSubmit = {
                 val name = fields[0].value as String
-                val calories = (fields[1].value as Number).toFloat()
-                val protein = (fields[2].value as Number).toFloat()
-                val carbs = (fields[3].value as Number).toFloat()
-                val fats = (fields[4].value as Number).toFloat()
+                val calories = fields[1].value
+                val protein = fields[2].value
+                val carbs = fields[3].value
+                val fats = fields[4].value
 
                 scope.launch {
                     val newProduct = Product(
                         name = name,
-                        calories = calories,
-                        protein = protein,
-                        carbs = carbs,
-                        fats = fats
+                        calories = calories.toFloatSafe(),
+                        protein = protein.toFloatSafe(),
+                        carbs = carbs.toFloatSafe(),
+                        fats = fats.toFloatSafe()
                     )
+
                     repository.insertProduct(newProduct)
                 }
 
@@ -381,7 +383,7 @@ fun Products() {
                 fields.forEachIndexed { index, form ->
                     fields[index] = when (form.type) {
                         FieldType.STRING -> form.copy(value = "")
-                        FieldType.NUMBER -> form.copy(value = 0)
+                        FieldType.NUMBER -> form.copy(value = "")
                         else -> form
                     }
                 }
