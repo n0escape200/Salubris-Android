@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -20,6 +22,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.delay
 
 @Composable
 fun <T> FilterableDropdown(
@@ -43,11 +46,20 @@ fun <T> FilterableDropdown(
     var expanded by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf(selectedItem?.let(displayText) ?: "") }
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
-
+    val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    // Sync text when selectedItem changes externally
     LaunchedEffect(selectedItem) {
         text = selectedItem?.let(displayText) ?: ""
+    }
+
+    // Keep focus on text field whenever the dropdown is open or content changes
+    LaunchedEffect(expanded, text) {
+        if (expanded) {
+            delay(30) // small delay to let the dropdown render
+            focusRequester.requestFocus()
+        }
     }
 
     val filteredOptions = remember(text, options) {
@@ -61,7 +73,6 @@ fun <T> FilterableDropdown(
             onValueChange = { newText ->
                 text = newText
                 expanded = options.isNotEmpty()
-
                 if (newText.isBlank()) {
                     onItemSelected(null)
                 }
@@ -75,6 +86,8 @@ fun <T> FilterableDropdown(
                     contentDescription = null,
                     modifier = Modifier.clickable {
                         expanded = !expanded
+                        // When opened via icon, also request focus
+                        if (!expanded) focusRequester.requestFocus()
                     }
                 )
             },
@@ -87,14 +100,16 @@ fun <T> FilterableDropdown(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged {
-                    if (it.isFocused && options.isNotEmpty()) {
+                .onFocusChanged { focusState ->
+                    // Optional: auto-open dropdown when focused and options exist
+                    if (focusState.isFocused && options.isNotEmpty() && !expanded) {
                         expanded = true
                     }
                 }
                 .onGloballyPositioned {
                     textFieldSize = it.size.toSize()
-                },
+                }
+                .focusRequester(focusRequester),
             colors = textFieldColors
         )
 
@@ -120,6 +135,8 @@ fun <T> FilterableDropdown(
                         expanded = false
                         onItemSelected(option)
                         keyboardController?.hide()
+                        // Refocus after selection
+                        focusRequester.requestFocus()
                     },
                     colors = MenuDefaults.itemColors(textColor = Color.White),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
