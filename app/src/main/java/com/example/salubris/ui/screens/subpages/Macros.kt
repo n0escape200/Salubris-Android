@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.entities.MealWithProducts
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.viewmodels.*
+import com.example.salubris.ui.components.FilterableDropdown
 import com.example.salubris.ui.components.Input
 import com.example.salubris.ui.screens.pages.mealViewModelFactory
 import com.example.salubris.ui.theme.*
@@ -154,7 +155,9 @@ fun Macros(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Assignment, null, tint = Color.White, modifier = Modifier.size(30.dp))
                     Spacer(Modifier.width(10.dp))
@@ -171,7 +174,9 @@ fun Macros(
                     )
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     MacroBadge("Kcal", totalMacros["calories"]!!.truncate2Decimals().toString(), caloriesColor)
@@ -226,7 +231,10 @@ fun Macros(
                                 },
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(cancelColor.copy(alpha = 0.2f), shape = RoundedCornerShape(8.dp))
+                                    .background(
+                                        cancelColor.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
                             ) {
                                 Icon(Icons.Default.Delete, null, tint = cancelColor, modifier = Modifier.size(30.dp))
                             }
@@ -280,7 +288,6 @@ private fun ProductSelectionModal(
     productViewModel: ProductViewModel,
     settingViewModel: SettingViewModel
 ) {
-    var expanded by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     var amount by remember { mutableStateOf("") }
     var calories by remember { mutableFloatStateOf(0f) }
@@ -308,67 +315,31 @@ private fun ProductSelectionModal(
         },
         title = "Add a product"
     ) {
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-            OutlinedTextField(
-                value = selectedProduct?.name ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Select a product") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    if (selectedProduct != null) {
-                        IconButton(onClick = { selectedProduct = null }) {
-                            Icon(Icons.Default.Close, null, tint = Color.White)
-                        }
-                    }
-                },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                    cursorColor = Color.White
-                )
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(ContainerBackground).border(0.5.dp, Color.White)
-            ) {
-                if (options.isNotEmpty()) {
-                    options.forEach { product ->
-                        DropdownMenuItem(
-                            text = { Text(product.name, color = Color.White) },
-                            onClick = {
-                                selectedProduct = product
-                                expanded = false
-                            },
-                            modifier = Modifier.background(ContainerBackground)
-                        )
-                    }
-                } else {
-                    DropdownMenuItem(
-                        text = { Text("No options", color = Color.Gray) },
-                        onClick = { expanded = false },
-                        modifier = Modifier.background(ContainerBackground)
-                    )
-                }
-            }
-        }
+        FilterableDropdown(
+            options = options,
+            selectedItem = selectedProduct,
+            onItemSelected = { product ->
+                selectedProduct = product
+            },
+            label = "Select a product",
+            displayText = { it.name }
+        )
 
         if (selectedProduct != null) {
             ProductNutritionLabel(selectedProduct!!)
-            Input("Amount (g)", amount, onChange = { value ->
-                amount = value
-                val safeAmount = (value.toFloatOrNull() ?: 0f) / 100
-                calories = selectedProduct!!.calories * safeAmount
-                protein = selectedProduct!!.protein * safeAmount
-                carbs = selectedProduct!!.carbs * safeAmount
-                fats = selectedProduct!!.fats * safeAmount
-            }, keyboardType = KeyboardType.Number)
+            Input(
+                label = "Amount (g)",
+                value = amount,
+                onChange = { value ->
+                    amount = value
+                    val safeAmount = (value.toFloatOrNull() ?: 0f) / 100
+                    calories = selectedProduct!!.calories * safeAmount
+                    protein = selectedProduct!!.protein * safeAmount
+                    carbs = selectedProduct!!.carbs * safeAmount
+                    fats = selectedProduct!!.fats * safeAmount
+                },
+                keyboardType = KeyboardType.Number
+            )
 
             if (mainGoal == null) {
                 Text("No goal set", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.W600)
@@ -388,7 +359,10 @@ private fun ProductSelectionModal(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text("Preview macro intake", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.W600)
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         MacroBadge("Kcal", calories.truncate2Decimals().toString(), caloriesColor)
                         MacroBadge("Protein", protein.truncate2Decimals().toString(), proteinColor)
                         MacroBadge("Carbs", carbs.truncate2Decimals().toString(), carbsColor)
@@ -397,11 +371,15 @@ private fun ProductSelectionModal(
                 }
             }
         } else {
-            Text("Please select a product to continue", color = Color(154, 154, 154, 255), fontSize = 17.sp, fontStyle = FontStyle.Italic)
+            Text(
+                "Please select a product to continue",
+                color = Color(154, 154, 154, 255),
+                fontSize = 17.sp,
+                fontStyle = FontStyle.Italic
+            )
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MealSelectionModal(
@@ -410,7 +388,6 @@ private fun MealSelectionModal(
     meals: List<MealWithProducts>,
     onAdd: (mealId: Int, quantityGrams: Float) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     var selectedMeal by remember { mutableStateOf<MealWithProducts?>(null) }
     var quantity by remember { mutableStateOf("") }
 
@@ -470,57 +447,17 @@ private fun MealSelectionModal(
         title = "Add a meal"
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Dropdown for meal selection
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                OutlinedTextField(
-                    value = selectedMeal?.meal?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Select a meal") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                        if (selectedMeal != null) {
-                            IconButton(onClick = { selectedMeal = null }) {
-                                Icon(Icons.Default.Close, null, tint = Color.White)
-                            }
-                        }
-                    },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                        cursorColor = Color.White
-                    )
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(ContainerBackground).border(0.5.dp, Color.White)
-                ) {
-                    if (meals.isNotEmpty()) {
-                        meals.forEach { mealWithProducts ->
-                            DropdownMenuItem(
-                                text = { Text(mealWithProducts.meal.name, color = Color.White) },
-                                onClick = {
-                                    selectedMeal = mealWithProducts
-                                    expanded = false
-                                },
-                                modifier = Modifier.background(ContainerBackground)
-                            )
-                        }
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text("No meals available", color = Color.Gray) },
-                            onClick = { expanded = false },
-                            modifier = Modifier.background(ContainerBackground)
-                        )
-                    }
-                }
-            }
+            // Reusable FilterableDropdown for meal selection
+            FilterableDropdown(
+                options = meals,
+                selectedItem = selectedMeal,
+                onItemSelected = { meal ->
+                    selectedMeal = meal
+                },
+                label = "Select a meal",
+                displayText = { it.meal.name },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             if (selectedMeal != null) {
                 // Meal composition
@@ -540,12 +477,21 @@ private fun MealSelectionModal(
                 Text("Total meal weight: ${totalWeight.truncate2Decimals()}g", color = Color.White, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Input("Quantity consumed (g)", quantity, onChange = { quantity = it }, keyboardType = KeyboardType.Number)
+                Input(
+                    label = "Quantity consumed (g)",
+                    value = quantity,
+                    onChange = { quantity = it },
+                    keyboardType = KeyboardType.Number
+                )
 
                 val quantityFloat = quantity.toFloatOrNull()
                 if (quantityFloat != null && quantityFloat > 0) {
                     val multiplier = quantityFloat / totalWeight
-                    Text("Serving factor: ${multiplier.truncate2Decimals()}x", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                    Text(
+                        "Serving factor: ${multiplier.truncate2Decimals()}x",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp
+                    )
                 }
 
                 // Macro preview
@@ -572,7 +518,11 @@ private fun MealSelectionModal(
                     }
                 }
             } else {
-                Text("Please select a meal", color = Color.Gray, fontStyle = FontStyle.Italic)
+                Text(
+                    "Please select a meal",
+                    color = Color.Gray,
+                    fontStyle = FontStyle.Italic
+                )
             }
         }
     }
@@ -581,7 +531,9 @@ private fun MealSelectionModal(
 @Composable
 private fun MacroBadge(label: String, value: String, color: Color) {
     Column(
-        modifier = Modifier.background(color, RoundedCornerShape(5.dp)).padding(horizontal = 10.dp, vertical = 5.dp),
+        modifier = Modifier
+            .background(color, RoundedCornerShape(5.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
