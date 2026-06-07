@@ -39,12 +39,21 @@ class MacroViewModel(
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     private val _error = MutableStateFlow<String?>(null)
 
-    fun saveMacroLine(productId: Int, amount: Float, date: Long) {
+    fun saveMacroLine(name: String, calories: Float, protein: Float, carbs: Float, fats: Float, amount: Float, date: Long, isDraft:  Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             _operationStatus.value = OperationStatus.Idle
             try {
-                val newMacroLine = Macro(productId = productId, amount = amount, date = date)
+                val newMacroLine = Macro(
+                    name = name,
+                    calories = calories,
+                    protein = protein,
+                    carbs = carbs,
+                    fats = fats,
+                    amount = amount,
+                    date = date,
+                    isDraft = isDraft
+                )
                 macroRepository.insertMacroLine(newMacroLine)
                 _operationStatus.value = OperationStatus.Success
             } catch (e: Exception) {

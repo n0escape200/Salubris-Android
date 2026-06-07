@@ -7,8 +7,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.salubris.database.entities.Macro
-import com.example.salubris.database.entities.Product
-import com.example.salubris.database.relations.MacroWithProduct
 
 @Dao
 interface MacroLineDao {
@@ -26,7 +24,7 @@ interface MacroLineDao {
         AND date < (:dayStart + 86400000)
         """
     )
-    suspend fun getMacrosForDay(dayStart: Long): List<MacroWithProduct>
+    suspend fun getMacrosForDay(dayStart: Long): List<Macro>
 
     @Delete
     suspend fun delete(macro: Macro)

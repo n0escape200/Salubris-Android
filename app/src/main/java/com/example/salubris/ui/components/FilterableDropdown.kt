@@ -46,70 +46,72 @@ fun <T> FilterableDropdown(
     var expanded by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf(selectedItem?.let(displayText) ?: "") }
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Sync text when selectedItem changes externally
     LaunchedEffect(selectedItem) {
         text = selectedItem?.let(displayText) ?: ""
     }
 
-    // Keep focus on text field whenever the dropdown is open or content changes
-    LaunchedEffect(expanded, text) {
-        if (expanded) {
-            delay(30) // small delay to let the dropdown render
-            focusRequester.requestFocus()
+    val filteredOptions = remember(text, options) {
+        if (text.isBlank()) {
+            options
+        } else {
+            options.filter {
+                displayText(it).contains(text, ignoreCase = true)
+            }
         }
     }
 
-    val filteredOptions = remember(text, options) {
-        if (text.isBlank()) options
-        else options.filter { displayText(it).contains(text, ignoreCase = true) }
-    }
-
     Box(modifier = modifier) {
+
         OutlinedTextField(
             value = text,
             onValueChange = { newText ->
                 text = newText
-                expanded = options.isNotEmpty()
+
+                expanded = filteredOptions.isNotEmpty()
+
                 if (newText.isBlank()) {
                     onItemSelected(null)
                 }
             },
             enabled = enabled,
             label = { Text(label) },
-            trailingIcon = {
-                val icon = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.clickable {
-                        expanded = !expanded
-                        // When opened via icon, also request focus
-                        if (!expanded) focusRequester.requestFocus()
-                    }
-                )
-            },
             singleLine = true,
             keyboardActions = KeyboardActions(
                 onDone = {
-                    keyboardController?.hide()
                     expanded = false
+                    keyboardController?.hide()
                 }
             ),
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        expanded = !expanded
+
+                        if (expanded) {
+                            focusRequester.requestFocus()
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector =
+                            if (expanded)
+                                Icons.Default.KeyboardArrowUp
+                            else
+                                Icons.Default.KeyboardArrowDown,
+                        contentDescription = null
+                    )
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged { focusState ->
-                    // Optional: auto-open dropdown when focused and options exist
-                    if (focusState.isFocused && options.isNotEmpty() && !expanded) {
-                        expanded = true
-                    }
-                }
+                .focusRequester(focusRequester)
                 .onGloballyPositioned {
                     textFieldSize = it.size.toSize()
-                }
-                .focusRequester(focusRequester),
+                },
             colors = textFieldColors
         )
 
@@ -117,33 +119,53 @@ fun <T> FilterableDropdown(
             expanded = expanded && filteredOptions.isNotEmpty(),
             onDismissRequest = {
                 expanded = false
-                keyboardController?.hide()
             },
-            properties = PopupProperties(focusable = false),
+            properties = PopupProperties(
+                focusable = false
+            ),
             modifier = Modifier
-                .width(with(LocalDensity.current) { textFieldSize.width.toDp() })
+                .width(
+                    with(LocalDensity.current) {
+                        textFieldSize.width.toDp()
+                    }
+                )
                 .heightIn(max = 250.dp)
                 .background(Color.DarkGray),
             containerColor = Color.DarkGray,
             shape = RoundedCornerShape(8.dp)
         ) {
+
             filteredOptions.forEachIndexed { index, option ->
+
                 DropdownMenuItem(
-                    text = { Text(displayText(option), color = Color.White) },
+                    text = {
+                        Text(
+                            text = displayText(option),
+                            color = Color.White
+                        )
+                    },
                     onClick = {
                         text = displayText(option)
                         expanded = false
+
                         onItemSelected(option)
+
                         keyboardController?.hide()
-                        // Refocus after selection
-                        focusRequester.requestFocus()
                     },
-                    colors = MenuDefaults.itemColors(textColor = Color.White),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+                    colors = MenuDefaults.itemColors(
+                        textColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 12.dp
+                    )
                 )
 
                 if (index < filteredOptions.lastIndex) {
-                    Divider(color = Color.Gray, thickness = 0.5.dp)
+                    HorizontalDivider(
+                        color = Color.Gray,
+                        thickness = 0.5.dp
+                    )
                 }
             }
         }

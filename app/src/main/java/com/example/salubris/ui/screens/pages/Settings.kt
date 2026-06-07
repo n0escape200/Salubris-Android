@@ -249,7 +249,7 @@ fun Settings(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ){
             Text(
-                "Other goals",
+                "Trackers",
                 color = Color.White,
                 fontSize = 25.sp,
                 fontWeight = FontWeight.W500
