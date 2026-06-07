@@ -2,9 +2,11 @@ package com.example.salubris.database.viewmodels
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.DAO.MealDao
 import com.example.salubris.database.DAO.TrackedMealDao
@@ -12,6 +14,7 @@ import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.TrackedMeal
 import com.example.salubris.database.repositories.MacroRepository
 import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
+import com.example.salubris.ui.screens.pages.mealViewModelFactory
 import com.example.salubris.utils.calculateMacrosForProduct
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -24,7 +27,6 @@ data class TrackedItem(
     val protein: Float,
     val carbs: Float,
     val fats: Float,
-    val originalId: Int,
     val amountOrMultiplier: Float,
     val date: Long
 )
@@ -89,42 +91,37 @@ class MacroViewModel(
      */
     suspend fun getTrackedItemsForDay(dayStart: Long): List<TrackedItem> {
         val productEntries = macroRepository.getMacrosForDay(dayStart)
-        val mealEntries = trackedMealDao.getTrackedMealsForDay(dayStart)
+        val trackedMealEntries = trackedMealDao.getTrackedMealsForDay(dayStart)
 
-        val productItems = productEntries.mapNotNull { (macro, product) ->
-            if (product != null) {
-                val macros = calculateMacrosForProduct(product, macro.amount)
+        val productItems = productEntries.map { macro ->
                 TrackedItem(
                     id = macro.uid,
                     type = "product",
-                    name = product.name,
-                    calories = macros["calories"]!!,
-                    protein = macros["protein"]!!,
-                    carbs = macros["carbs"]!!,
-                    fats = macros["fats"]!!,
-                    originalId = product.uid,
+                    name = macro.name,
+                    calories = macro.calories,
+                    protein = macro.protein,
+                    carbs = macro.carbs,
+                    fats = macro.fats,
                     amountOrMultiplier = macro.amount,
                     date = macro.date
                 )
-            } else null
         }
 
-        val mealItems = mealEntries.mapNotNull { (trackedMeal, meal) ->
-            if (meal != null) {
-                val macros = calculateMealMacros(meal.uid, trackedMeal.consumedGrams)
-                TrackedItem(
-                    id = trackedMeal.uid,
-                    type = "meal",
-                    name = meal.name,
-                    calories = macros["calories"] ?: 0f,
-                    protein = macros["protein"] ?: 0f,
-                    carbs = macros["carbs"] ?: 0f,
-                    fats = macros["fats"] ?: 0f,
-                    originalId = meal.uid,
-                    amountOrMultiplier = trackedMeal.consumedGrams,
-                    date = trackedMeal.date
-                )
-            } else null
+        val mealItems = trackedMealEntries.map { trackedMeal ->
+            val meal = mealDao.getMeal(trackedMeal.mealId)
+            val macros = calculateMealMacros(meal?.uid!!, trackedMeal.consumedGrams)
+            TrackedItem(
+                id = trackedMeal.uid,
+                type = "meal",
+                name = meal.name,
+                calories = macros["calories"] ?: 0f,
+                protein = macros["protein"] ?: 0f,
+                carbs = macros["carbs"] ?: 0f,
+                fats = macros["fats"] ?: 0f,
+                amountOrMultiplier = trackedMeal.consumedGrams,
+                date = trackedMeal.date
+            )
+
         }
 
         return productItems + mealItems
@@ -139,7 +136,7 @@ class MacroViewModel(
     }
 
     suspend fun deleteMacroById(id: Int) {
-        macroRepository.deleteMacro(Macro(uid = id, productId = 0, amount = 0f, date = 0L))
+        macroRepository.deleteMacro(Macro(uid = id, amount = 0f, date = 0L))
     }
 
     suspend fun deleteTrackedMealById(id: Int) {
