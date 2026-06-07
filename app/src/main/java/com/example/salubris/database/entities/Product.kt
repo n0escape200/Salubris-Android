@@ -12,5 +12,6 @@ data class Product(
     @ColumnInfo(name = "calories") val calories: Float = 0f,
     @ColumnInfo(name = "protein") val protein: Float = 0f,
     @ColumnInfo(name = "carbs") val carbs: Float = 0f,
-    @ColumnInfo(name = "fats") val fats: Float = 0f
+    @ColumnInfo(name = "fats") val fats: Float = 0f,
+    @ColumnInfo(name = "code") val code: String = ""
 )
