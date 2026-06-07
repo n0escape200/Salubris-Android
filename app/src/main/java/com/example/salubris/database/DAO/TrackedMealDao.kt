@@ -6,7 +6,6 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.salubris.database.entities.TrackedMeal
-import com.example.salubris.database.relations.TrackedMealWithMeal
 
 @Dao
 interface TrackedMealDao {
@@ -15,7 +14,7 @@ interface TrackedMealDao {
 
     @Transaction
     @Query("SELECT * FROM TrackedMeal WHERE date >= :dayStart AND date < (:dayStart + 86400000)")
-    suspend fun getTrackedMealsForDay(dayStart: Long): List<TrackedMealWithMeal>
+    suspend fun getTrackedMealsForDay(dayStart: Long): List<TrackedMeal>
 
     @Delete
     suspend fun delete(trackedMeal: TrackedMeal)
