@@ -11,7 +11,7 @@ class TrackedMealRepository(
         dao.insert(TrackedMeal(mealId = mealId, consumedGrams = consumedGrams, date = date))
     }
 
-    suspend fun getTrackedMealsForDay(dayStart: Long): List<TrackedMealWithMeal> {
+    suspend fun getTrackedMealsForDay(dayStart: Long): List<TrackedMeal> {
         return dao.getTrackedMealsForDay(dayStart)
     }
 

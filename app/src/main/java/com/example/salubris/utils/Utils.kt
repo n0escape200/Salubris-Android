@@ -89,3 +89,42 @@ fun Any?.toFloatSafe(): Float {
         else -> 0f
     }
 }
+
+
+enum class Sex { MALE, FEMALE }
+enum class Goal { LOSE, MAINTAIN, GAIN }
+enum class ActivityLevel(val factor: Double) {
+    SEDENTARY(1.2),
+    LIGHT(1.375),
+    MODERATE(1.55),
+    ACTIVE(1.725),
+    VERY_ACTIVE(1.9)
+}
+
+object CalorieCalculator {
+    // Mifflin-St Jeor formula
+    // Add to CalorieCalculator.kt or a separate file
+    enum class GoalOption(val displayName: String, val calorieAdjustment: Int) {
+        EXTREME_LOSS("Extreme weight loss (1000 kcal deficit)", -1000),
+        MODERATE_LOSS("Moderate weight loss (500 kcal deficit)", -500),
+        MAINTAIN("Maintain weight", 0),
+        MODERATE_GAIN("Moderate weight gain (500 kcal surplus)", 500),
+        EXTREME_GAIN("Extreme weight gain (1000 kcal surplus)", 1000)
+    }
+
+    fun calculateBMR(weightKg: Double, heightCm: Double, age: Int, sex: Sex): Double {
+        return if (sex == Sex.MALE) {
+            10 * weightKg + 6.25 * heightCm - 5 * age + 5
+        } else {
+            10 * weightKg + 6.25 * heightCm - 5 * age - 161
+        }
+    }
+
+    fun calculateTDEE(bmr: Double, activity: ActivityLevel): Double {
+        return bmr * activity.factor
+    }
+
+    fun calculateRecommendedCalories(tdee: Double, adjustment: Int): Int {
+        return (tdee + adjustment).toInt()
+    }
+}

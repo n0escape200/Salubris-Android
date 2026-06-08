@@ -1,6 +1,8 @@
 package com.example.salubris
 
 import HomeTabsScreen
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -10,11 +12,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.salubris.ui.navigation.Routes
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNav(
-    modifier: Modifier = Modifier,
-    currentPage: MutableState<String>? = null,
-    pagerState: PagerState
+    favorites: List<String>,
+    pagerState: PagerState,
+    currentPage: MutableState<String>,
+    overridePage: String?,
+    onCloseOverride: () -> Unit,
+    onNavigateToPage: (String) -> Unit,  // added
+    modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
 
@@ -25,8 +32,12 @@ fun AppNav(
     ) {
         composable(Routes.Home) {
             HomeTabsScreen(
+                favorites = favorites,
                 pagerState = pagerState,
                 currentPage = currentPage,
+                overridePage = overridePage,
+                onCloseOverride = onCloseOverride,
+                onNavigateToPage = onNavigateToPage,
                 modifier = modifier
             )
         }

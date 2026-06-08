@@ -1,12 +1,17 @@
 package com.example.salubris.database.viewmodels
 
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.DAO.MealDao
+import com.example.salubris.database.DAO.TrackedMealDao
 import com.example.salubris.database.entities.Meal
 import com.example.salubris.database.entities.MealWithProducts
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.relations.ProductWithQuantity   // ✅ fixed import
+import com.example.salubris.database.repositories.MacroRepository
 import com.example.salubris.database.repositories.MealRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,4 +82,11 @@ class MealViewModelFactory(
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
+}
+
+@Composable
+fun mealViewModelFactory(context: android.content.Context): MealViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val mealRepository = MealRepository(database.mealDao())
+    return MealViewModelFactory(mealRepository)
 }

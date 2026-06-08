@@ -58,35 +58,34 @@ class StepService : Service(), SensorEventListener {
         super.onCreate()
         Log.d(TAG, "onCreate")
         createNotificationChannel()
-
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-
-        if (stepSensor == null) {
-            Log.e(TAG, "No step counter sensor! Service will show notification and stop.")
-            StepRepository.setSensorAvailable(false)
-            showSensorUnavailableNotification()
-            stopSelf()
-            return
-        }
-        StepRepository.setSensorAvailable(true)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action: ${intent?.action}")
 
+        // If no step sensor, show a dummy notification and stop gracefully
+        if (stepSensor == null) {
+            Log.e(TAG, "No step counter sensor. Showing notification and stopping.")
+            StepRepository.setSensorAvailable(false)
+            startForeground(NOTIFICATION_ID, buildDummyNotification())
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // Sensor exists, now start foreground properly
+        startForeground(NOTIFICATION_ID, buildNotification(currentSteps))
+        StepRepository.setSensorAvailable(true)
+
         when (intent?.action) {
             ACTION_RESET_STEPS -> resetSteps()
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification(currentSteps))
-
-        stepSensor?.let {
-            if (baseSteps < 0) {
-                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
-                Log.d(TAG, "Sensor registered")
-                scheduleMidnightReset()
-            }
+        if (baseSteps < 0) {
+            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL)
+            Log.d(TAG, "Sensor registered")
+            scheduleMidnightReset()
         }
         return START_STICKY
     }
@@ -95,7 +94,6 @@ class StepService : Service(), SensorEventListener {
         if (event?.sensor?.type != Sensor.TYPE_STEP_COUNTER) return
 
         val totalSteps = event.values[0]
-
         if (baseSteps < 0) {
             baseSteps = totalSteps
             Log.d(TAG, "Base steps set to $baseSteps")
@@ -104,12 +102,11 @@ class StepService : Service(), SensorEventListener {
         val today = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
         if (lastResetDate != null && lastResetDate != today) {
             baseSteps = totalSteps
-            Log.d(TAG, "Date changed (detected by sensor), new base set to $baseSteps")
+            Log.d(TAG, "Date changed, new base set to $baseSteps")
         }
         lastResetDate = today
 
         currentSteps = (totalSteps - baseSteps).toInt().coerceAtLeast(0)
-
         StepRepository.updateSteps(currentSteps)
         updateNotification(currentSteps)
     }
@@ -127,7 +124,6 @@ class StepService : Service(), SensorEventListener {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        // Restart service if app is swiped away from recents
         val restartIntent = Intent(this, StepService::class.java)
         val pendingIntent = PendingIntent.getService(
             this,
@@ -144,15 +140,12 @@ class StepService : Service(), SensorEventListener {
         Log.d(TAG, "Task removed, scheduling service restart")
     }
 
-    // ------------------------------------------------------------
-    //  Reset Logic
-    // ------------------------------------------------------------
     private fun resetSteps() {
         baseSteps = -1f
         currentSteps = 0
         StepRepository.updateSteps(0)
         updateNotification(0)
-        Log.d(TAG, "Steps manually reset (midnight trigger)")
+        Log.d(TAG, "Steps manually reset")
     }
 
     private fun scheduleMidnightReset() {
@@ -187,17 +180,14 @@ class StepService : Service(), SensorEventListener {
         }
     }
 
-    // ------------------------------------------------------------
-    //  Notifications
-    // ------------------------------------------------------------
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Step Tracking",
-                NotificationManager.IMPORTANCE_DEFAULT   // Higher importance may help prevent dismissal
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Shows your daily step count – cannot be dismissed while tracking"
+                description = "Shows your daily step count"
                 setShowBadge(false)
             }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -206,7 +196,7 @@ class StepService : Service(), SensorEventListener {
     }
 
     private fun buildNotification(steps: Int): Notification {
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Walking Tracker")
             .setContentText("Steps today: $steps")
@@ -216,29 +206,20 @@ class StepService : Service(), SensorEventListener {
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+    }
 
-        // For pre‑Oreo, set flags manually
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            builder.setDefaults(NotificationCompat.FLAG_NO_CLEAR or NotificationCompat.FLAG_ONGOING_EVENT)
-        }
-
-        return builder.build()
+    private fun buildDummyNotification(): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Step Tracker Unavailable")
+            .setContentText("Your device does not have a step counter sensor.")
+            .setOngoing(false)
+            .build()
     }
 
     private fun updateNotification(steps: Int) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification(steps))
-        Log.d(TAG, "Notification updated: $steps steps")
-    }
-
-    private fun showSensorUnavailableNotification() {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("Step Tracker Unavailable")
-            .setContentText("Your device does not have a step counter sensor.")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(false)
-            .build()
-        startForeground(NOTIFICATION_ID, notification)
     }
 }

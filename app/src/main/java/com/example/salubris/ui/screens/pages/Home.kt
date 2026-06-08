@@ -1,18 +1,17 @@
 package com.example.salubris.ui.screens.pages
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,13 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.viewmodels.MacroViewModel
-import com.example.salubris.database.viewmodels.TrackedItem
+import com.example.salubris.database.viewmodels.*
 import com.example.salubris.database.viewmodels.macroViewModelFactory
-import com.example.salubris.ui.theme.ContainerBackground
-import com.example.salubris.ui.theme.MainContainerBorder
-import com.example.salubris.ui.theme.caloriesColor
+import com.example.salubris.database.viewmodels.settingsViewModelFactory
+import com.example.salubris.database.viewmodels.waterViewModelFactory
+import com.example.salubris.stepcounter.StepRepository
+import com.example.salubris.ui.theme.*
 import com.example.salubris.utils.truncate2Decimals
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -39,8 +39,7 @@ import com.github.mikephil.charting.data.LineDataSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
 import java.time.temporal.TemporalAdjusters
 
 fun calculateTotalCalories(list: List<TrackedItem>): Float {
@@ -48,7 +47,7 @@ fun calculateTotalCalories(list: List<TrackedItem>): Float {
 }
 
 @Composable
-fun Header() {
+fun Header(userName: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -72,7 +71,105 @@ fun Header() {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)) {
                 Text("Welcome back", color = Color.White)
-                Text("User", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                Text(if (userName.isBlank()) "User" else userName, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun StepCard(stepGoal: Int) {
+    val steps by StepRepository.steps.collectAsState()
+    val sensorAvailable by StepRepository.sensorAvailable.collectAsState()
+    val progress = if (sensorAvailable) (steps.toFloat() / stepGoal).coerceAtMost(1f) else 0f
+    val remaining = if (sensorAvailable) (stepGoal - steps).coerceAtLeast(0) else 0
+
+    Card(
+        modifier = Modifier.fillMaxWidth().height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = ContainerBackground),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.DirectionsWalk,
+                contentDescription = "Steps",
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Steps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                if (sensorAvailable) {
+                    Text("$steps / $stepGoal", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    LinearProgressIndicator(
+                        progress = progress,
+                        modifier = Modifier.fillMaxWidth().height(8.dp).padding(top = 4.dp),
+                        color = Color(0xFF4CAF50),
+                        trackColor = Color.DarkGray
+                    )
+                    Text(
+                        "${(progress * 100).toInt()}% • $remaining steps remaining",
+                        color = Color.LightGray,
+                        fontSize = 12.sp
+                    )
+                } else {
+                    Text(
+                        "Step sensor not available",
+                        color = Color.LightGray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WaterCard(waterGoal: Int, waterViewModel: WaterViewModel) {
+    val todayTotal by waterViewModel.todayTotal.collectAsState()
+    val progress = (todayTotal.toFloat() / waterGoal).coerceAtMost(1f)
+    val remaining = (waterGoal - todayTotal).coerceAtLeast(0)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = ContainerBackground),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.WaterDrop,
+                contentDescription = "Water",
+                tint = waterColor,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Water", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("$todayTotal / $waterGoal ml", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .padding(top = 4.dp),
+                    color = waterColor,
+                    trackColor = Color.DarkGray
+                )
+                Text(
+                    "${(progress * 100).toInt()}% • $remaining ml remaining",
+                    color = Color.LightGray,
+                    fontSize = 12.sp
+                )
             }
         }
     }
@@ -80,58 +177,175 @@ fun Header() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TodayIntake(macroViewModel: MacroViewModel) {
+fun TodayIntake(
+    macroViewModel: MacroViewModel,
+    goalCalories: Int,
+    goalType: String,
+    refreshTrigger: Boolean
+) {
     var trackedItems by remember { mutableStateOf<List<TrackedItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        val todayMillis = LocalDate.now()
-            .atStartOfDay(ZoneId.systemDefault())
+    LaunchedEffect(refreshTrigger) {
+        isLoading = true
+        val todayMillis = LocalDate.now(ZoneOffset.UTC)
+            .atStartOfDay(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli()
-        trackedItems = macroViewModel.getTrackedItemsForDay(todayMillis)
-        Log.d("TodayIntake", "Today's calories: ${calculateTotalCalories(trackedItems)}")
+        trackedItems = withContext(Dispatchers.IO) {
+            macroViewModel.getTrackedItemsForDay(todayMillis)
+        }
+        isLoading = false
     }
 
-    Column(
+    val totalCalories = calculateTotalCalories(trackedItems)
+    val remaining = goalCalories - totalCalories
+    val isLoss = goalType.contains("LOSS")
+    val isGain = goalType.contains("GAIN")
+    val isMaintain = goalType == "MAINTAIN"
+    val progressPercentage = if (goalCalories > 0) (totalCalories / goalCalories) * 100 else 0f
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = ContainerBackground, shape = MainContainerBorder)
-            .padding(20.dp)
+            .wrapContentHeight(),
+        colors = CardDefaults.cardColors(containerColor = ContainerBackground),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.LocalFireDepartment,
-                contentDescription = "Flame",
-                tint = caloriesColor,
-                modifier = Modifier.size(30.dp)
-            )
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LocalFireDepartment,
+                    contentDescription = "Calories",
+                    tint = caloriesColor,
+                    modifier = Modifier.size(30.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Today's Intake",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp
+                )
+                if (isLoading) {
+                    Spacer(Modifier.width(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Today's intake",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 17.sp,
-                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "${calculateTotalCalories(trackedItems).truncate2Decimals()}",
+                "${totalCalories.truncate2Decimals()} / $goalCalories",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 40.sp
+                fontSize = 32.sp
             )
             Text("calories", color = Color.LightGray)
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = (totalCalories / goalCalories).coerceIn(0f, 1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = caloriesColor,
+                trackColor = Color.DarkGray
+            )
+            Spacer(Modifier.height(8.dp))
+
+            when {
+                isLoss -> {
+                    if (remaining > 0) {
+                        Text(
+                            text = "🎯 $remaining calories left",
+                            color = submitColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Progress: ${"%.1f".format(progressPercentage)}%",
+                            color = Color.LightGray,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Text(
+                            text = "⚠️ You've exceeded your goal",
+                            color = Color(0xFFFF9800),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                isGain -> {
+                    if (remaining > 0) {
+                        Text(
+                            text = "💪 $remaining more calories needed",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Progress: ${"%.1f".format(progressPercentage)}%",
+                            color = Color.LightGray,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Text(
+                            text = "✅ Goal achieved!",
+                            color = submitColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                isMaintain -> {
+                    if (remaining > 0) {
+                        Text(
+                            text = "$remaining calories remaining",
+                            color = Color.LightGray,
+                            fontSize = 14.sp
+                        )
+                    } else if (remaining < 0) {
+                        Text(
+                            text = "Exceeded by ${-remaining} calories",
+                            color = Color(0xFFFF9800),
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        Text(
+                            text = "Perfect!",
+                            color = submitColor,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
+    if (weeklyData.all { it == 0f }) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFF1E1E1E))
+                .border(1.dp, Color(0xFF4DB8FF), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No data this week", color = Color.LightGray, fontSize = 14.sp)
+        }
+        return
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(180.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFF1E1E1E))
             .border(1.dp, Color(0xFF4DB8FF), RoundedCornerShape(16.dp))
@@ -153,6 +367,9 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
                         setDrawValues(true)
                         valueTextSize = 12f
                         valueTextColor = android.graphics.Color.WHITE
+                        setDrawFilled(true)
+                        fillColor = android.graphics.Color.parseColor("#4DB8FF")
+                        fillAlpha = 50
                     }
                     data = LineData(dataSet)
                     xAxis.apply {
@@ -188,32 +405,38 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Analytics(weeklyCalories: List<Float>) {
-    Column(
+fun Analytics(weeklyCalories: List<Float>, onRefresh: () -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = ContainerBackground, shape = MainContainerBorder)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .wrapContentHeight(),
+        colors = CardDefaults.cardColors(containerColor = ContainerBackground),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                contentDescription = "Analytics",
-                tint = Color(0, 255, 102),
-                modifier = Modifier.size(30.dp)
-            )
-            Text(
-                "Analytics",
-                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        Column {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                    contentDescription = "Analytics",
+                    tint = Color(0, 255, 102),
+                    modifier = Modifier.size(30.dp)
+                )
+                Text(
+                    "Analytics",
+                    modifier = Modifier.padding(start = 8.dp),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
+                }
+            }
             Text("Weekly caloric intake", color = Color.White, fontWeight = FontWeight.W500)
-            Spacer(modifier = Modifier.height(10.dp))
             SimpleLineChart(weeklyCalories)
         }
     }
@@ -221,33 +444,63 @@ fun Analytics(weeklyCalories: List<Float>) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Home(macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current))) {
-    var weeklyCalories by remember { mutableStateOf<List<Float>>(listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)) }
+fun Home(
+    macroViewModel: MacroViewModel = viewModel(factory = macroViewModelFactory(LocalContext.current)),
+    settingViewModel: SettingViewModel = viewModel(factory = settingsViewModelFactory(LocalContext.current)),
+    waterViewModel: WaterViewModel = viewModel(factory = waterViewModelFactory(LocalContext.current))
+) {
+    val settings by settingViewModel.settings.collectAsStateWithLifecycle()
+    val settingsMap = remember(settings) { settings.associate { it.name to it.value } }
+    val userName = settingsMap["user_name"] ?: "User"
+    val goalCalories = settingsMap["recommended_calories"]?.toIntOrNull() ?: 2000
+    val goalType = settingsMap["user_goal"] ?: "MAINTAIN"
+    val goalSteps = settingsMap["goal_steps"]?.toIntOrNull() ?: 10000
+    val goalWater = settingsMap["goal_water"]?.toIntOrNull() ?: 2000
 
+    var weeklyCalories by remember { mutableStateOf<List<Float>>(listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)) }
+    var refreshTrigger by remember { mutableStateOf(false) }
+
+    val today = LocalDate.now().toString()
     LaunchedEffect(Unit) {
+        waterViewModel.setDate(today)
+    }
+
+    suspend fun loadWeeklyData() {
         withContext(Dispatchers.IO) {
-            val today = LocalDate.now()
+            val today = LocalDate.now(ZoneOffset.UTC)
             val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
             val days = (0..6).map { monday.plusDays(it.toLong()) }
-            val zone = ZoneId.systemDefault()
             val results = mutableListOf<Float>()
             for (date in days) {
-                val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                val startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
                 val items = macroViewModel.getTrackedItemsForDay(startOfDay)
                 val totalCal = items.sumOf { it.calories.toDouble() }.toFloat()
-                Log.d("WeeklyChart", "Date: $date, startOfDay: $startOfDay, totalCal: $totalCal")
                 results.add(totalCal)
             }
             weeklyCalories = results
         }
     }
 
+    LaunchedEffect(refreshTrigger) {
+        loadWeeklyData()
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(5.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Header()
-        TodayIntake(macroViewModel)
-        Analytics(weeklyCalories)
+        Header(userName = userName)
+        TodayIntake(
+            macroViewModel = macroViewModel,
+            goalCalories = goalCalories,
+            goalType = goalType,
+            refreshTrigger = refreshTrigger
+        )
+        Analytics(weeklyCalories = weeklyCalories, onRefresh = { refreshTrigger = !refreshTrigger })
+        StepCard(stepGoal = goalSteps)
+        WaterCard(waterGoal = goalWater, waterViewModel = waterViewModel)
     }
 }

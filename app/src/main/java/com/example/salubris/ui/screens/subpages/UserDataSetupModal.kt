@@ -1,0 +1,222 @@
+package com.example.salubris.ui.screens.subpages
+
+import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.ui.components.GoalOptionUi
+import com.example.salubris.ui.components.GoalSelector
+import com.example.salubris.ui.components.Input
+import com.example.salubris.ui.components.StepProgressionModal
+import com.example.salubris.ui.theme.Purple80
+import com.example.salubris.ui.theme.submitColor
+import com.example.salubris.ui.theme.cancelColor
+import com.example.salubris.utils.ActivityLevel
+import com.example.salubris.utils.CalorieCalculator
+import com.example.salubris.utils.Sex
+import kotlinx.coroutines.launch
+
+@SuppressLint("CoroutineCreationDuringComposition")
+@Composable
+fun UserDataSetupModal(
+    viewModel: SettingViewModel,
+    onDismiss: () -> Unit,
+    onComplete: (Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
+    var sex by remember { mutableStateOf(Sex.MALE) }
+    var heightCm by remember { mutableStateOf("") }
+    var weightKg by remember { mutableStateOf("") }
+    var activity by remember { mutableStateOf(ActivityLevel.MODERATE) }
+    var goalOption by remember { mutableStateOf(CalorieCalculator.GoalOption.MAINTAIN) }
+    var calculatedTDEE by remember { mutableStateOf<Double?>(null) }
+
+    val scope = rememberCoroutineScope()
+
+    val step1: @Composable (onNext: () -> Unit, onBack: () -> Unit, isLast: Boolean) -> Unit = { onNext, _, _ ->
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("Basic information", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.W500)
+            Spacer(modifier = Modifier.height(16.dp))
+            Input(label = "Your name", value = name, onChange = { name = it }, keyboardType = KeyboardType.Text)
+            Spacer(modifier = Modifier.height(12.dp))
+            Input(label = "Age (years)", value = age, onChange = { age = it.filter { char -> char.isDigit() } }, keyboardType = KeyboardType.Number)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Sex", color = Color.White)
+            Row {
+                RadioButton(selected = sex == Sex.MALE, onClick = { sex = Sex.MALE })
+                Text("Male", color = Color.White, modifier = Modifier.align(Alignment.CenterVertically))
+                Spacer(modifier = Modifier.width(16.dp))
+                RadioButton(selected = sex == Sex.FEMALE, onClick = { sex = Sex.FEMALE })
+                Text("Female", color = Color.White, modifier = Modifier.align(Alignment.CenterVertically))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Input(label = "Height (cm)", value = heightCm, onChange = { heightCm = it.filter { char -> char.isDigit() } }, keyboardType = KeyboardType.Number)
+            Spacer(modifier = Modifier.height(12.dp))
+            Input(label = "Weight (kg)", value = weightKg, onChange = { weightKg = it.filter { char -> char.isDigit() || char == '.' } }, keyboardType = KeyboardType.Decimal)
+            Spacer(modifier = Modifier.height(32.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel", color = cancelColor) }
+                Button(
+                    onClick = {
+                        val ageInt = age.toIntOrNull()
+                        val height = heightCm.toDoubleOrNull()
+                        val weight = weightKg.toDoubleOrNull()
+                        if (ageInt != null && height != null && weight != null) {
+                            val bmr = CalorieCalculator.calculateBMR(weight, height, ageInt, sex)
+                            calculatedTDEE = CalorieCalculator.calculateTDEE(bmr, activity)
+                        }
+                        onNext()
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = name.isNotBlank() && age.isNotBlank() && heightCm.isNotBlank() && weightKg.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = submitColor)
+                ) { Text("Next") }
+            }
+        }
+    }
+
+    val step2: @Composable (onNext: () -> Unit, onBack: () -> Unit, isLast: Boolean) -> Unit = { onNext, onBack, _ ->
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("Activity level", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.W500)
+            Text("How often do you exercise?", color = Color.LightGray, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            ActivityLevel.values().forEach { a ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = activity == a, onClick = {
+                        activity = a
+                        val ageInt = age.toIntOrNull()
+                        val height = heightCm.toDoubleOrNull()
+                        val weight = weightKg.toDoubleOrNull()
+                        if (ageInt != null && height != null && weight != null) {
+                            val bmr = CalorieCalculator.calculateBMR(weight, height, ageInt, sex)
+                            calculatedTDEE = CalorieCalculator.calculateTDEE(bmr, a)
+                        }
+                    })
+                    Text(
+                        text = when(a) {
+                            ActivityLevel.SEDENTARY -> "Sedentary (little or no exercise)"
+                            ActivityLevel.LIGHT -> "Light exercise (1-3 days/week)"
+                            ActivityLevel.MODERATE -> "Moderate exercise (3-5 days/week)"
+                            ActivityLevel.ACTIVE -> "Active (6-7 days/week)"
+                            ActivityLevel.VERY_ACTIVE -> "Very active (hard daily exercise)"
+                        },
+                        color = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back", color = cancelColor) }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel", color = cancelColor) }
+                Button(onClick = onNext, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = submitColor)) { Text("Next") }
+            }
+        }
+    }
+
+    val step3: @Composable (onNext: () -> Unit, onBack: () -> Unit, isLast: Boolean) -> Unit = { onNext, onBack, isLast ->
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("Your goal", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.W500)
+            Text(
+                text = if (calculatedTDEE != null) "Base maintenance: ${calculatedTDEE!!.toInt()} kcal/day" else "Complete previous steps first",
+                color = Purple80,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            if (calculatedTDEE != null) {
+                val tdee = calculatedTDEE!!
+                val goalOptions = CalorieCalculator.GoalOption.values().map { option ->
+                    val adjustedCalories = (tdee + option.calorieAdjustment).toInt()
+                    val weeklyChangeKg = (option.calorieAdjustment * 7.0 / 7700).let {
+                        if (it > 0) "+${"%.1f".format(it)} kg/week"
+                        else "${"%.1f".format(it)} kg/week"
+                    }
+                    GoalOptionUi(
+                        title = option.displayName,
+                        subtitle = "${adjustedCalories} kcal/day · $weeklyChangeKg",
+                        isSelected = goalOption == option,
+                        onSelect = { goalOption = option }
+                    )
+                }
+
+                GoalSelector(options = goalOptions)
+            } else {
+                Text(
+                    "Please go back and ensure all information is filled.",
+                    color = Color.Red,
+                    fontSize = 14.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back", color = cancelColor) }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel", color = cancelColor) }
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier.weight(1f),
+                    enabled = calculatedTDEE != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = submitColor)
+                ) {
+                    Text(if (isLast) "Calculate" else "Next")
+                }
+            }
+        }
+    }
+
+    StepProgressionModal(
+        steps = listOf(step1, step2, step3),
+        onComplete = {
+            if (name.isBlank()) return@StepProgressionModal
+            val ageInt = age.toIntOrNull() ?: return@StepProgressionModal
+            val height = heightCm.toDoubleOrNull() ?: return@StepProgressionModal
+            val weight = weightKg.toDoubleOrNull() ?: return@StepProgressionModal
+            val tdee = calculatedTDEE ?: return@StepProgressionModal
+
+            val recommended = CalorieCalculator.calculateRecommendedCalories(tdee, goalOption.calorieAdjustment)
+
+            scope.launch {
+                viewModel.saveSettings(
+                    listOf(
+                        "user_name" to name,
+                        "user_age" to ageInt.toString(),
+                        "user_sex" to sex.name,
+                        "user_height_cm" to height.toString(),
+                        "user_weight_kg" to weight.toString(),
+                        "user_activity_level" to activity.name,
+                        "user_goal" to goalOption.name,
+                        "recommended_calories" to recommended.toString()
+                    )
+                )
+            }
+            onComplete(recommended)
+            onDismiss()
+        },
+        onDismiss = onDismiss
+    )
+}
