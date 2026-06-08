@@ -1,8 +1,10 @@
 package com.example.salubris.database.entities
 
 import androidx.room.ColumnInfo
+import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+@Entity
 data class Macro(
     @PrimaryKey(autoGenerate = true)
     val uid: Int = 0,
@@ -13,5 +15,4 @@ data class Macro(
     @ColumnInfo(name = "fats") val fats: Float = 0f,
     @ColumnInfo("amount") val amount: Float,
     @ColumnInfo("date") val date: Long,
-    @ColumnInfo("isDraft") val isDraft: Boolean = false,
 )

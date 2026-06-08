@@ -83,4 +83,5 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:${ktor_version}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 }

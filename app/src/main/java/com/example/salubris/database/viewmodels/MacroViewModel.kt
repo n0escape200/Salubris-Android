@@ -14,7 +14,6 @@ import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.TrackedMeal
 import com.example.salubris.database.repositories.MacroRepository
 import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
-import com.example.salubris.ui.screens.pages.mealViewModelFactory
 import com.example.salubris.utils.calculateMacrosForProduct
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -41,7 +40,7 @@ class MacroViewModel(
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     private val _error = MutableStateFlow<String?>(null)
 
-    fun saveMacroLine(name: String, calories: Float, protein: Float, carbs: Float, fats: Float, amount: Float, date: Long, isDraft:  Boolean = false) {
+    fun saveMacroLine(name: String, calories: Float, protein: Float, carbs: Float, fats: Float, amount: Float, date: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             _operationStatus.value = OperationStatus.Idle
@@ -54,7 +53,6 @@ class MacroViewModel(
                     fats = fats,
                     amount = amount,
                     date = date,
-                    isDraft = isDraft
                 )
                 macroRepository.insertMacroLine(newMacroLine)
                 _operationStatus.value = OperationStatus.Success

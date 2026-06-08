@@ -2,10 +2,13 @@ package com.example.salubris
 
 import HomeTabsScreen
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -32,6 +35,7 @@ import androidx.work.*
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.stepcounter.StepService
 import com.example.salubris.ui.components.Footer
+import com.example.salubris.utils.FavoritesManager
 import com.example.salubris.utils.WaterResetWorker
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -43,7 +47,8 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
-    // Launcher for multiple permissions (Activity Recognition + Notifications)
+
+
     private val multiplePermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -52,25 +57,41 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, "All required permissions granted, starting step service")
             startStepService()
         } else {
-            Log.w(TAG, "Not all permissions granted. Activity recognition: ${permissions[Manifest.permission.ACTIVITY_RECOGNITION]}, Notifications: ${permissions[Manifest.permission.POST_NOTIFICATIONS]}")
+            Log.w(TAG, "Not all permissions granted.")
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Initialize database (if needed)
         Room.databaseBuilder(applicationContext, AppDatabase::class.java, "Salubris").build()
 
         setContent {
-            val pagerState = rememberPagerState(pageCount = { 5 })
-            val currentPage = remember { mutableStateOf("Home") }
+            val favoritesManager = remember { FavoritesManager(applicationContext) }
+            val favorites by favoritesManager.favorites.collectAsState()
+            val pagerState = rememberPagerState(pageCount = { favorites.size })
+            val currentPage = remember { mutableStateOf(favorites.getOrNull(0) ?: "Home") }
+            var overridePage by remember { mutableStateOf<String?>(null) }
             val coroutineScope = rememberCoroutineScope()
 
-            LaunchedEffect(Unit) {
-                requestNeededPermissions()
+            // Update currentPage when pager scrolls (if not in override)
+            LaunchedEffect(pagerState.currentPage, overridePage) {
+                if (overridePage == null) {
+                    currentPage.value = favorites.getOrNull(pagerState.currentPage) ?: "Home"
+                } else {
+                    currentPage.value = overridePage!!
+                }
+            }
+
+            // Adjust pager when favorites change (only if not in override)
+            LaunchedEffect(favorites, overridePage) {
+                if (overridePage == null) {
+                    val newIndex = favorites.indexOf(currentPage.value).coerceAtLeast(0)
+                    pagerState.scrollToPage(newIndex)
+                }
             }
 
             Box(
@@ -87,23 +108,52 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         Footer(
                             currentPage = currentPage.value,
+                            favorites = favorites,
                             onItemSelected = { label ->
-                                val page = when (label) {
-                                    "Home" -> 0
-                                    "Tracking" -> 1
-                                    "Products" -> 2
-                                    "Meals" -> 3
-                                    "Settings" -> 4
-                                    else -> 0
+                                // This is called when user clicks a page in the FAB menu or footer
+                                if (favorites.contains(label)) {
+                                    // Favorite: close override if any, scroll to it
+                                    if (overridePage != null) {
+                                        overridePage = null
+                                        // after closing, scroll
+                                        val index = favorites.indexOf(label)
+                                        if (index != -1) {
+                                            coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    } else {
+                                        // Already in pager mode, just scroll
+                                        val index = favorites.indexOf(label)
+                                        if (index != -1) {
+                                            coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    }
+                                } else {
+                                    // Unfavorited: set override page
+                                    overridePage = label
                                 }
-                                coroutineScope.launch { pagerState.animateScrollToPage(page) }
+                            },
+                            onUpdateFavorites = { newFavorites ->
+                                favoritesManager.saveFavorites(newFavorites)
+                                // If we were viewing an unfavorited page that just became favorite, exit override
+                                if (overridePage != null && newFavorites.contains(overridePage)) {
+                                    overridePage = null
+                                    // Scroll to that page
+                                    val index = newFavorites.indexOf(overridePage)
+                                    coroutineScope.launch { pagerState.scrollToPage(index) }
+                                }
                             }
                         )
                     }
                 ) { innerPadding ->
                     HomeTabsScreen(
+                        favorites = favorites,
                         pagerState = pagerState,
                         currentPage = currentPage,
+                        overridePage = overridePage,
+                        onCloseOverride = { overridePage = null },
+                        onNavigateToPage = { label ->
+                            // This could be used if we want extra navigation logic, but we already handle in Footer's onItemSelected
+                        },
                         modifier = Modifier
                             .padding(innerPadding)
                             .padding(horizontal = 15.dp)
@@ -116,7 +166,6 @@ class MainActivity : ComponentActivity() {
     private fun requestNeededPermissions() {
         val permissionsToRequest = mutableListOf<String>()
 
-        // Activity recognition (required for step counter)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -124,7 +173,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Notification permission (required for Android 13+ to show foreground notification)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -133,72 +181,48 @@ class MainActivity : ComponentActivity() {
         }
 
         if (permissionsToRequest.isNotEmpty()) {
-            Log.d(TAG, "Requesting permissions: $permissionsToRequest")
             multiplePermissionsLauncher.launch(permissionsToRequest.toTypedArray())
         } else {
-            // Permissions already granted
-            Log.d(TAG, "Permissions already granted, starting step service")
             startStepService()
         }
     }
 
+    @SuppressLint("ServiceCast")
     private fun startStepService() {
+        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        if (stepSensor == null) {
+            Log.d("MainActivity", "No step sensor, service not started")
+            return
+        }
         val intent = Intent(this, StepService::class.java)
         ContextCompat.startForegroundService(this, intent)
-
-        // On Android 12+, ensure exact alarm permission is granted for midnight reset
-        requestExactAlarmPermissionIfNeeded()
-
-        // Request exemption from battery optimisation (critical for Motorola devices)
-        requestIgnoreBatteryOptimizations()
-
-        // Schedule midnight water reset using WorkManager
-        scheduleWaterResetWork()
     }
 
-    /**
-     * For Android 12 (API 31) and above, SCHEDULE_EXACT_ALARM is a special permission
-     * that must be granted by the user via system settings.
-     */
     private fun requestExactAlarmPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
-                Log.d(TAG, "Exact alarm permission not granted. Opening system settings.")
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
-            } else {
-                Log.d(TAG, "Exact alarm permission already granted.")
             }
         }
     }
 
-    /**
-     * Request the user to disable battery optimisation for this app.
-     * This prevents Motorola (and other manufacturers) from killing the
-     * step counter service when the app is in the background.
-     */
     private fun requestIgnoreBatteryOptimizations() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
-                Log.d(TAG, "Requesting battery optimisation exemption.")
                 val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
-            } else {
-                Log.d(TAG, "Already exempt from battery optimisation.")
             }
         }
     }
 
-    /**
-     * Schedules a periodic WorkManager task to reset water intake at midnight every day.
-     * The worker will run once per day, with an initial delay until the next midnight.
-     */
     private fun scheduleWaterResetWork() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
@@ -214,13 +238,8 @@ class MainActivity : ComponentActivity() {
             ExistingPeriodicWorkPolicy.KEEP,
             resetRequest
         )
-
-        Log.d(TAG, "Water reset work scheduled with initial delay: ${calculateDelayUntilMidnight()} ms")
     }
 
-    /**
-     * Calculates milliseconds from now until the next midnight.
-     */
     private fun calculateDelayUntilMidnight(): Long {
         val now = Calendar.getInstance()
         val midnight = Calendar.getInstance().apply {

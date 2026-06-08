@@ -10,10 +10,11 @@ import com.example.salubris.database.repositories.ProductRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class ProductViewModel(
     private val repository: ProductRepository
-): ViewModel() {
+) : ViewModel() {
 
     val products: StateFlow<List<Product>> =
         repository.getAllProducts()
@@ -22,9 +23,12 @@ class ProductViewModel(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
-
+    fun addProduct(product: Product) {
+        viewModelScope.launch {
+            repository.insertProduct(product)
+        }
+    }
 }
-
 
 class ProductViewModelFactory(
     private val repository: ProductRepository
@@ -37,7 +41,6 @@ class ProductViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
 
 @Composable
 fun productViewModelFactory(context: android.content.Context): ProductViewModelFactory {

@@ -13,12 +13,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun Multiselect(valueList: Array<String>){
-    Column() {
-        valueList.forEachIndexed { index, string ->
-            Row( horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(true, onCheckedChange = {})
-                Text(string, color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.W600)
+fun Multiselect(
+    valueList: Array<String>,
+    selectedIndex: Int? = null,
+    onItemSelected: ((Int) -> Unit)? = null
+) {
+    Column {
+        valueList.forEachIndexed { index, item ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = selectedIndex == index,
+                    onCheckedChange = { isChecked ->
+                        if (isChecked) {
+                            onItemSelected?.invoke(index)
+                        }
+                    }
+                )
+                Text(
+                    text = item,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Normal
+                )
             }
         }
     }
