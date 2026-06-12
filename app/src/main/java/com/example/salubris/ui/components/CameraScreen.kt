@@ -276,12 +276,13 @@ fun BarcodeScannerView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Close button overlay
+        // Close button overlay - moved down to avoid status bar
         IconButton(
             onClick = onClose,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(16.dp)
+                .statusBarsPadding()                      // below status bar
+                .padding(top = 12.dp, end = 8.dp)        // extra spacing
                 .size(48.dp)
                 .background(Color.Black.copy(alpha = 0.6f), shape = MaterialTheme.shapes.small)
         ) {

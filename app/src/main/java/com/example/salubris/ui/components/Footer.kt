@@ -19,14 +19,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.salubris.ui.theme.ContainerBackground
-import com.example.salubris.ui.theme.MainContainerBorder
-import com.example.salubris.ui.theme.productColor
+import com.example.salubris.ui.theme.*
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -35,17 +32,18 @@ fun Footer(
     favorites: List<String>,
     allPages: List<String> = listOf("Home", "Tracking", "Products", "Meals", "Settings"),
     onItemSelected: (String) -> Unit,
-    onUpdateFavorites: (List<String>) -> Unit
+    onUpdateFavorites: (List<String>) -> Unit,
+    onOpenChat: () -> Unit,
+    actions: List<FooterAction> = emptyList()
 ) {
     val configuration = LocalConfiguration.current
     val showLabels = configuration.screenWidthDp >= 360
+
     var showModal by remember { mutableStateOf(false) }
     var tempFavorites by remember { mutableStateOf(favorites) }
 
     LaunchedEffect(showModal) {
-        if (showModal) {
-            tempFavorites = favorites.toList()
-        }
+        if (showModal) tempFavorites = favorites.toList()
     }
 
     fun togglePage(page: String, add: Boolean) {
@@ -62,10 +60,11 @@ fun Footer(
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth().padding(10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(10.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Footer bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,7 +74,6 @@ fun Footer(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left two items – each takes equal weight
             repeat(2) { index ->
                 if (index < favorites.size) {
                     FooterNavItem(
@@ -90,9 +88,9 @@ fun Footer(
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
-            // Spacer for the FAB area – increased to avoid overlap
+
             Spacer(modifier = Modifier.width(80.dp))
-            // Right two items
+
             for (index in 2 until 4) {
                 if (index < favorites.size) {
                     FooterNavItem(
@@ -109,21 +107,19 @@ fun Footer(
             }
         }
 
-        // Cut‑out circle background
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-6).dp)
+                .offset(y = (-14).dp)   // was -6.dp
                 .size(90.dp)
                 .clip(CircleShape)
                 .background(ContainerBackground)
         )
 
-        // FAB
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 8.dp)
+                .offset(y = 2.dp)       // was 8.dp
                 .size(64.dp)
                 .shadow(8.dp, CircleShape)
                 .clip(CircleShape)
@@ -131,11 +127,16 @@ fun Footer(
                 .clickable { showModal = true },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Menu, "Menu", tint = Color.White, modifier = Modifier.size(32.dp))
+            Icon(
+                Icons.Default.Menu,
+                "Menu",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp)
+            )
         }
     }
 
-    // Full‑screen modal (unchanged except bottom padding adjustment)
+    // Customisation dialog (near full‑screen)
     if (showModal) {
         Dialog(
             onDismissRequest = { showModal = false },
@@ -146,94 +147,84 @@ fun Footer(
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.7f))
                     .clickable { showModal = false },
-                contentAlignment = Alignment.BottomCenter
+                contentAlignment = Alignment.Center
             ) {
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .wrapContentHeight()
-                        .padding(bottom = 140.dp)
-                        .clickable { }
-                        .background(Color(30, 30, 30), shape = RoundedCornerShape(24.dp)),
+                        .fillMaxWidth(0.95f)
+                        .fillMaxHeight(0.9f),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "Customize Footer Pages",
+                            "Customize Footer",
                             color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            "Pages",
+                            color = Color.LightGray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
                         allPages.forEach { page ->
                             val isChecked = tempFavorites.contains(page)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp)
-                                    .background(Color.Transparent),
+                                    .height(48.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable { togglePage(page, !isChecked) },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Checkbox(
-                                        checked = isChecked,
-                                        onCheckedChange = null,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clickable {
-                                            onItemSelected(page)
-                                            showModal = false
-                                        }
-                                        .padding(end = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = getIconForPage(page),
-                                        contentDescription = page,
-                                        tint = if (currentPage == page) productColor else Color.White,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Text(
-                                        text = page,
-                                        fontSize = 18.sp,
-                                        color = if (currentPage == page) productColor else Color.White,
-                                        fontWeight = if (currentPage == page) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
-                            }
-                            if (page != allPages.last()) {
-                                Divider(color = Color.Gray.copy(alpha = 0.3f), thickness = 0.5.dp)
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { togglePage(page, it) }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    getIconForPage(page),
+                                    page,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(page, color = Color.White)
                             }
                         }
-                        if (tempFavorites.isEmpty()) {
-                            Text(
-                                text = "Select at least 1 page",
-                                color = Color.Yellow,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.Gray)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            "Quick Actions",
+                            color = Color.LightGray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        // AI Chat button – opens full‑screen chat
+                        Button(
+                            onClick = {
+                                showModal = false
+                                onOpenChat()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = productColor)
+                        ) {
+                            Icon(Icons.Default.Chat, "Chat", tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("AI Assistant", color = Color.White)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { showModal = false },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = productColor)
+                            colors = ButtonDefaults.buttonColors(containerColor = submitColor)
                         ) {
                             Text("Close", color = Color.White)
                         }
@@ -261,13 +252,10 @@ private fun FooterNavItem(
             .padding(horizontal = 6.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Icon(icon, label, tint = if (isSelected) Color.Black else Color.White, modifier = Modifier.size(20.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, label, tint = Color.White, modifier = Modifier.size(20.dp))
             if (showLabel) {
-                Text(label, color = if (isSelected) ContainerBackground else Color.White, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                Text(label, color = Color.White, fontSize = 10.sp)
             }
         }
     }
@@ -283,3 +271,9 @@ private fun getIconForPage(page: String): ImageVector {
         else -> Icons.Default.Home
     }
 }
+
+data class FooterAction(
+    val icon: ImageVector,
+    val contentDescription: String,
+    val onClick: () -> Unit
+)

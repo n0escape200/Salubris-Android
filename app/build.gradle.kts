@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.salubris"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -43,6 +43,8 @@ android {
 dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.ui)
+    implementation(project(":llama"))
+    implementation(libs.ui)
     val room_version = "2.8.4"
     val ktor_version= "3.4.1"
 
@@ -84,4 +86,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 }
