@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -69,13 +70,29 @@ class StepService : Service(), SensorEventListener {
         if (stepSensor == null) {
             Log.e(TAG, "No step counter sensor. Showing notification and stopping.")
             StepRepository.setSensorAvailable(false)
-            startForeground(NOTIFICATION_ID, buildDummyNotification())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildDummyNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildDummyNotification())
+            }
             stopSelf()
             return START_NOT_STICKY
         }
 
         // Sensor exists, now start foreground properly
-        startForeground(NOTIFICATION_ID, buildNotification(currentSteps))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(currentSteps),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification(currentSteps))
+        }
         StepRepository.setSensorAvailable(true)
 
         when (intent?.action) {

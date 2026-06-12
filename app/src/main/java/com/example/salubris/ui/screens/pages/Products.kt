@@ -1,37 +1,26 @@
 package com.example.salubris.ui.screens.pages
 
-import Modal
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable          // added
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close       // added
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip               // added
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -40,9 +29,7 @@ import com.example.salubris.database.AppDatabase
 import com.example.salubris.database.entities.Product
 import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.theme.*
-import com.example.salubris.utils.FieldType
-import com.example.salubris.utils.FormData
-import com.example.salubris.utils.RenderFormFields
+import com.example.salubris.utils.toFloatSafe
 import kotlinx.coroutines.launch
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -55,14 +42,16 @@ import android.net.ConnectivityManager
 import android.content.Context
 import android.net.NetworkCapabilities
 import android.os.Build
-import androidx.compose.foundation.layout.wrapContentHeight
-import com.example.salubris.utils.toFloatSafe
 
-// ----------------------------------------------------------------------
-// Helper definitions moved before Products composable
-// ----------------------------------------------------------------------
+data class FetchedProduct(
+    val name: String,
+    val calories: Double,
+    val protein: Double,
+    val carbs: Double,
+    val fats: Double,
+    val code: String
+)
 
-// Helper function to check internet connectivity
 fun isInternetAvailable(context: Context): Boolean {
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -82,67 +71,41 @@ fun isInternetAvailable(context: Context): Boolean {
     }
 }
 
-// Helper data class for fetched product info
-data class FetchedProduct(
-    val name: String,
-    val calories: Double,
-    val protein: Double,
-    val carbs: Double,
-    val fats: Double,
-    val code: String
-)
-
-// ----------------------------------------------------------------------
-// Products composable (unchanged except for Dialog replacement)
-// ----------------------------------------------------------------------
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Products() {
-    var isOpen by remember { mutableStateOf(false) }
     var isScanning by remember { mutableStateOf(false) }
     var scannedBarcode by remember { mutableStateOf<String?>(null) }
     var isLookingUpProduct by remember { mutableStateOf(false) }
     var showNoInternetSnackbar by remember { mutableStateOf(false) }
     var showDuplicateSnackbar by remember { mutableStateOf(false) }
     var showNotFoundSnackbar by remember { mutableStateOf(false) }
-    var showProductConfirmDialog by remember { mutableStateOf(false) }
-    var fetchedProductData by remember { mutableStateOf<FetchedProduct?>(null) }
+
+    var showDuplicateDialog by remember { mutableStateOf(false) }
+    var duplicateProduct by remember { mutableStateOf<Product?>(null) }
+
+    var isFormOpen by remember { mutableStateOf(false) }
+    var editingProduct by remember { mutableStateOf<Product?>(null) }
+    var prefilledData by remember { mutableStateOf<FetchedProduct?>(null) }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val client = HttpClient(CIO)
-    val fields = remember {
-        mutableStateListOf(
-            FormData("Name", FieldType.STRING, ""),
-            FormData("Calories", FieldType.NUMBER, ""),
-            FormData("Protein", FieldType.NUMBER, ""),
-            FormData("Carbs", FieldType.NUMBER, ""),
-            FormData("Fats", FieldType.NUMBER, ""),
-            FormData("Code", FieldType.STRING, "")
-        )
-    }
 
     val context = LocalContext.current
     val database = AppDatabase.getDatabase(context)
     val repository = remember { ProductRepository(database.productDao()) }
-
     val scope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
 
-    val products by repository
-        .getAllProducts()
-        .collectAsState(initial = emptyList())
-    val mutableProducts = remember { mutableStateListOf<Product>() }
+    val products by repository.getAllProducts().collectAsState(initial = emptyList())
 
-    LaunchedEffect (products) {
-        mutableProducts.clear()
-        mutableProducts.addAll(products)
-    }
-
-    // Handle barcode scan result
+    // Handle barcode scan
     LaunchedEffect(scannedBarcode) {
         if (scannedBarcode != null && isScanning) {
-            val alreadyExists = products.any { it.code == scannedBarcode }
-            if (alreadyExists) {
-                showDuplicateSnackbar = true
+            val existing = products.firstOrNull { it.code == scannedBarcode }
+            if (existing != null) {
+                duplicateProduct = existing
+                showDuplicateDialog = true
                 isScanning = false
                 scannedBarcode = null
                 return@LaunchedEffect
@@ -156,13 +119,10 @@ fun Products() {
             }
 
             isLookingUpProduct = true
-
             scope.launch {
                 try {
                     val jsonString = client.get("https://world.openfoodfacts.org/api/v2/product/$scannedBarcode").bodyAsText()
                     val response = Json { ignoreUnknownKeys = true }.decodeFromString<OpenFoodFactsResponse>(jsonString)
-                    Log.v("TAG", response.toString())
-
                     val productData = response.product
                     val name = productData?.name ?: ""
                     if (name.isBlank() && productData?.nutriments == null) {
@@ -172,8 +132,7 @@ fun Products() {
                         scannedBarcode = null
                         return@launch
                     }
-
-                    fetchedProductData = FetchedProduct(
+                    val fetched = FetchedProduct(
                         name = name,
                         calories = productData?.nutriments?.energyKcal ?: 0.0,
                         protein = productData?.nutriments?.proteins ?: 0.0,
@@ -181,10 +140,14 @@ fun Products() {
                         fats = productData?.nutriments?.fat ?: 0.0,
                         code = scannedBarcode!!
                     )
-                    showProductConfirmDialog = true
+                    prefilledData = fetched
+                    editingProduct = null
+                    isFormOpen = true
                     isLookingUpProduct = false
+                    isScanning = false
+                    scannedBarcode = null
                 } catch (e: Exception) {
-                    Log.e("TAG", "Error fetching product: ${e.message}")
+                    Log.e("Products", "Error fetching product: ${e.message}")
                     showNoInternetSnackbar = true
                     isLookingUpProduct = false
                     isScanning = false
@@ -198,9 +161,7 @@ fun Products() {
 
     Box(modifier = Modifier.fillMaxSize().padding(5.dp)) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 10.dp),
+            modifier = Modifier.fillMaxSize().padding(bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
@@ -208,7 +169,11 @@ fun Products() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(
-                    onClick = { isOpen = true },
+                    onClick = {
+                        editingProduct = null
+                        prefilledData = null
+                        isFormOpen = true
+                    },
                     colors = ButtonDefaults.buttonColors(productColor),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
@@ -220,11 +185,8 @@ fun Products() {
 
                 Button(
                     onClick = {
-                        if (isInternetAvailable(context)) {
-                            isScanning = true
-                        } else {
-                            showNoInternetSnackbar = true
-                        }
+                        if (isInternetAvailable(context)) isScanning = true
+                        else showNoInternetSnackbar = true
                     },
                     colors = ButtonDefaults.buttonColors(productColor.copy(alpha = 0.8f)),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
@@ -247,11 +209,16 @@ fun Products() {
                     Text("No products yet", color = Color.Gray)
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        itemsIndexed(products) { index, product ->
+                        itemsIndexed(products) { _, product ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(Color(60, 60, 60), RoundedCornerShape(5.dp))
+                                    .clickable {
+                                        editingProduct = product
+                                        prefilledData = null
+                                        isFormOpen = true
+                                    }
                                     .padding(8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -260,34 +227,25 @@ fun Products() {
                                     Text(product.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Row(modifier = Modifier.background(caloriesColor, shape = RoundedCornerShape(5.dp)).padding(5.dp)) {
-                                            Text("K:", color = Color.White)
-                                            Text("${product.calories}", color = Color.White)
+                                            Text("K:", color = Color.White); Text("${product.calories}", color = Color.White)
                                         }
                                         Row(modifier = Modifier.background(proteinColor, shape = RoundedCornerShape(5.dp)).padding(5.dp)) {
-                                            Text("P:", color = Color.White)
-                                            Text("${product.protein}", color = Color.White)
+                                            Text("P:", color = Color.White); Text("${product.protein}", color = Color.White)
                                         }
                                         Row(modifier = Modifier.background(carbsColor, shape = RoundedCornerShape(5.dp)).padding(5.dp)) {
-                                            Text("C:", color = Color.White)
-                                            Text("${product.carbs}", color = Color.White)
+                                            Text("C:", color = Color.White); Text("${product.carbs}", color = Color.White)
                                         }
                                         Row(modifier = Modifier.background(fatsColor, shape = RoundedCornerShape(5.dp)).padding(5.dp)) {
-                                            Text("F:", color = Color.White)
-                                            Text("${product.fats}", color = Color.White)
+                                            Text("F:", color = Color.White); Text("${product.fats}", color = Color.White)
                                         }
                                     }
                                 }
                                 IconButton(
-                                    onClick = {
-                                        scope.launch {
-                                            repository.deleteProduct(product)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
+                                    onClick = { scope.launch { repository.deleteProduct(product) } },
+                                    modifier = Modifier.size(40.dp)
                                         .background(cancelColor.copy(alpha = 0.2f), shape = RoundedCornerShape(8.dp))
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete product", tint = cancelColor, modifier = Modifier.size(30.dp))
+                                    Icon(Icons.Default.Delete, "Delete", tint = cancelColor, modifier = Modifier.size(30.dp))
                                 }
                             }
                         }
@@ -296,31 +254,108 @@ fun Products() {
             }
         }
 
-        // Snackbars (unchanged, omitted for brevity – same as original)
-        // ... (keep all snackbar logic as before)
+        if (showNoInternetSnackbar) {
+            Snackbar(modifier = Modifier.padding(16.dp), containerColor = cancelColor, contentColor = Color.White,
+                action = { TextButton(onClick = { showNoInternetSnackbar = false }) { Text("Dismiss", color = Color.White) } }
+            ) { Text("No internet connection") }
+            LaunchedEffect(Unit) { kotlinx.coroutines.delay(3000); showNoInternetSnackbar = false }
+        }
+        if (showDuplicateSnackbar) {
+            Snackbar(modifier = Modifier.padding(16.dp), containerColor = Color.Yellow, contentColor = Color.Black,
+                action = { TextButton(onClick = { showDuplicateSnackbar = false }) { Text("Dismiss", color = Color.Black) } }
+            ) { Text("Product already exists") }
+            LaunchedEffect(Unit) { kotlinx.coroutines.delay(3000); showDuplicateSnackbar = false }
+        }
+        if (showNotFoundSnackbar) {
+            Snackbar(modifier = Modifier.padding(16.dp), containerColor = Color.Gray, contentColor = Color.White,
+                action = { TextButton(onClick = { showNotFoundSnackbar = false }) { Text("Dismiss", color = Color.White) } }
+            ) { Text("Product not found in database") }
+            LaunchedEffect(Unit) { kotlinx.coroutines.delay(3000); showNotFoundSnackbar = false }
+        }
 
-        // Product add dialog (native Dialog replacing Modal)
-        if (isOpen) {
+        // Duplicate product dialog
+        if (showDuplicateDialog && duplicateProduct != null) {
+            Dialog(onDismissRequest = { showDuplicateDialog = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).clickable { showDuplicateDialog = false }, contentAlignment = Alignment.Center) {
+                    Card(modifier = Modifier.fillMaxWidth(0.9f).wrapContentHeight().clickable { }, shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Product Already Exists", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            val p = duplicateProduct!!
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Name: ${p.name}", color = Color.White)
+                                Text("Calories: ${p.calories}", color = Color.White)
+                                Text("Protein: ${p.protein}", color = Color.White)
+                                Text("Carbs: ${p.carbs}", color = Color.White)
+                                Text("Fats: ${p.fats}", color = Color.White)
+                                Text("Barcode: ${p.code}", color = Color.White)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(onClick = { showDuplicateDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) { Text("Cancel", color = Color.White) }
+                                Button(onClick = {
+                                    editingProduct = p
+                                    prefilledData = null
+                                    isFormOpen = true
+                                    showDuplicateDialog = false
+                                }, colors = ButtonDefaults.buttonColors(containerColor = productColor)) { Text("Update", color = Color.White) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isFormOpen) {
+            var name by remember { mutableStateOf("") }
+            var calories by remember { mutableStateOf("") }
+            var protein by remember { mutableStateOf("") }
+            var carbs by remember { mutableStateOf("") }
+            var fats by remember { mutableStateOf("") }
+            var code by remember { mutableStateOf("") }
+
+            LaunchedEffect(editingProduct, prefilledData) {
+                when {
+                    editingProduct != null -> {
+                        val p = editingProduct!!
+                        name = p.name
+                        calories = "%.2f".format(p.calories)
+                        protein = "%.2f".format(p.protein)
+                        carbs = "%.2f".format(p.carbs)
+                        fats = "%.2f".format(p.fats)
+                        code = p.code
+                    }
+                    prefilledData != null -> {
+                        val f = prefilledData!!
+                        name = f.name
+                        calories = "%.2f".format(f.calories)
+                        protein = "%.2f".format(f.protein)
+                        carbs = "%.2f".format(f.carbs)
+                        fats = "%.2f".format(f.fats)
+                        code = f.code
+                    }
+                    else -> {
+                        name = ""; calories = ""; protein = ""; carbs = ""; fats = ""; code = ""
+                    }
+                }
+            }
+
             Dialog(
-                onDismissRequest = { isOpen = false },
+                onDismissRequest = { isFormOpen = false },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.7f))
-                        .clickable { isOpen = false },
+                        .clickable { isFormOpen = false },
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
                             .wrapContentHeight()
-                            .clickable { }
-                            .background(Color(30, 30, 30), shape = RoundedCornerShape(24.dp)),
+                            .clickable { },
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -331,44 +366,154 @@ fun Products() {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Add a product", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                IconButton(onClick = { isOpen = false }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                                Text(
+                                    if (editingProduct != null) "Edit Product" else "Add a product",
+                                    color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold
+                                )
+                                IconButton(onClick = { isFormOpen = false }) {
+                                    Icon(Icons.Default.Close, "Close", tint = Color.White)
                                 }
                             }
-                            RenderFormFields(fields)
+
+                            // Data source note
+                            if (prefilledData != null) {
+                                Column(
+                                    modifier = Modifier
+                                        .background(Color(80, 80, 80), shape = RoundedCornerShape(8.dp))
+                                        .padding(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text("Data sourced from Open Food Facts. It may be outdated or incomplete.", color = Color.White, fontSize = 12.sp)
+                                    Text(
+                                        "Visit Open Food Facts",
+                                        color = Color(0xFF4DB8FF),
+                                        textDecoration = TextDecoration.Underline,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.clickable {
+                                            uriHandler.openUri("https://world.openfoodfacts.org/product/${prefilledData!!.code}")
+                                        }
+                                    )
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Name", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = calories,
+                                onValueChange = { calories = it },
+                                label = { Text("Calories", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = protein,
+                                onValueChange = { protein = it },
+                                label = { Text("Protein", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = carbs,
+                                onValueChange = { carbs = it },
+                                label = { Text("Carbs", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = fats,
+                                onValueChange = { fats = it },
+                                label = { Text("Fats", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                            )
+                            OutlinedTextField(
+                                value = code,
+                                onValueChange = { code = it },
+                                label = { Text("Barcode", color = Color.White) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = productColor,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = productColor
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
                             Button(
                                 onClick = {
-                                    val name = fields[0].value as String
-                                    val calories = fields[1].value
-                                    val protein = fields[2].value
-                                    val carbs = fields[3].value
-                                    val fats = fields[4].value
-                                    val code = fields[5].value as String
                                     scope.launch {
-                                        val newProduct = Product(
-                                            name = name,
-                                            calories = calories.toFloatSafe(),
-                                            protein = protein.toFloatSafe(),
-                                            carbs = carbs.toFloatSafe(),
-                                            fats = fats.toFloatSafe(),
-                                            code = code
-                                        )
-                                        repository.insertProduct(newProduct)
-                                    }
-                                    isOpen = false
-                                    fields.forEachIndexed { index, form ->
-                                        fields[index] = when (form.type) {
-                                            FieldType.STRING -> form.copy(value = "")
-                                            FieldType.NUMBER -> form.copy(value = "")
-                                            else -> form
+                                        if (editingProduct != null) {
+                                            repository.updateProduct(
+                                                editingProduct!!.copy(
+                                                    name = name,
+                                                    calories = calories.toFloatSafe(),
+                                                    protein = protein.toFloatSafe(),
+                                                    carbs = carbs.toFloatSafe(),
+                                                    fats = fats.toFloatSafe(),
+                                                    code = code
+                                                )
+                                            )
+                                        } else {
+                                            repository.insertProduct(
+                                                Product(
+                                                    name = name,
+                                                    calories = calories.toFloatSafe(),
+                                                    protein = protein.toFloatSafe(),
+                                                    carbs = carbs.toFloatSafe(),
+                                                    fats = fats.toFloatSafe(),
+                                                    code = code
+                                                )
+                                            )
                                         }
                                     }
+                                    isFormOpen = false
+                                    editingProduct = null
+                                    prefilledData = null
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = productColor)
                             ) {
-                                Text("Save Product", color = Color.White)
+                                Text(if (editingProduct != null) "Update Product" else "Save Product", color = Color.White)
                             }
                         }
                     }
@@ -376,42 +521,21 @@ fun Products() {
             }
         }
 
-        // Barcode scanner modal (unchanged)
+        // Barcode scanner modal
         if (isScanning) {
-            Dialog(
-                onDismissRequest = {
-                    isScanning = false
-                    scannedBarcode = null
-                },
-                properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-            ) {
+            Dialog(onDismissRequest = { isScanning = false; scannedBarcode = null }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     if (isLookingUpProduct) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().background(Color.Black),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                        Column(modifier = Modifier.fillMaxSize().background(Color.Black), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             CircularProgressIndicator(color = Color.White)
                             Spacer(modifier = Modifier.height(16.dp))
                             Text("Looking up product...", color = Color.White)
-                            Button(onClick = {
-                                isLookingUpProduct = false
-                                isScanning = false
-                                scannedBarcode = null
-                            }, modifier = Modifier.padding(top = 50.dp)) {
-                                Text("Cancel")
-                            }
+                            Button(onClick = { isLookingUpProduct = false; isScanning = false }, modifier = Modifier.padding(top = 50.dp)) { Text("Cancel") }
                         }
                     } else {
                         CameraScreen(
-                            onBarcodeScanned = { barcode ->
-                                scannedBarcode = barcode
-                            },
-                            onClose = {
-                                isScanning = false
-                                scannedBarcode = null
-                            },
+                            onBarcodeScanned = { barcode -> scannedBarcode = barcode },
+                            onClose = { isScanning = false; scannedBarcode = null },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -421,23 +545,10 @@ fun Products() {
     }
 }
 
-// Keep the data classes for JSON parsing (unchanged)
-@Serializable
-data class OpenFoodFactsResponse(
-    val product: ProductData? = null
-)
-
-@Serializable
-data class ProductData(
-    @SerialName("product_name")
-    val name: String? = "",
-    val nutriments: Nutriments? = null
-)
-
-@Serializable
-data class Nutriments(
-    @SerialName("energy-kcal")
-    val energyKcal: Double? = 0.0,
+@Serializable data class OpenFoodFactsResponse(val product: ProductData? = null)
+@Serializable data class ProductData(@SerialName("product_name") val name: String? = "", val nutriments: Nutriments? = null)
+@Serializable data class Nutriments(
+    @SerialName("energy-kcal") val energyKcal: Double? = 0.0,
     val proteins: Double? = 0.0,
     val carbohydrates: Double? = 0.0,
     val fat: Double? = 0.0

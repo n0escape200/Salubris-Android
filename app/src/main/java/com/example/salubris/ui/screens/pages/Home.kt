@@ -37,6 +37,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -71,7 +72,12 @@ fun Header(userName: String) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)) {
                 Text("Welcome back", color = Color.White)
-                Text(if (userName.isBlank()) "User" else userName, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                Text(
+                    if (userName.isBlank()) "User" else userName,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp
+                )
             }
         }
     }
@@ -85,7 +91,9 @@ fun StepCard(stepGoal: Int) {
     val remaining = if (sensorAvailable) (stepGoal - steps).coerceAtLeast(0) else 0
 
     Card(
-        modifier = Modifier.fillMaxWidth().height(120.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
         colors = CardDefaults.cardColors(containerColor = ContainerBackground),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -103,10 +111,18 @@ fun StepCard(stepGoal: Int) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Steps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 if (sensorAvailable) {
-                    Text("$steps / $stepGoal", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "$steps / $stepGoal",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     LinearProgressIndicator(
                         progress = progress,
-                        modifier = Modifier.fillMaxWidth().height(8.dp).padding(top = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .padding(top = 4.dp),
                         color = Color(0xFF4CAF50),
                         trackColor = Color.DarkGray
                     )
@@ -151,11 +167,14 @@ fun WaterCard(waterGoal: Int, waterViewModel: WaterViewModel) {
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(12.dp))
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text("Water", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("$todayTotal / $waterGoal ml", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "$todayTotal / $waterGoal ml",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
                 LinearProgressIndicator(
                     progress = progress,
                     modifier = Modifier
@@ -232,7 +251,10 @@ fun TodayIntake(
                 )
                 if (isLoading) {
                     Spacer(Modifier.width(8.dp))
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -378,13 +400,14 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
                         textColor = android.graphics.Color.WHITE
                         textSize = 12f
                         granularity = 1f
-                        valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                            private val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-                            override fun getFormattedValue(value: Float): String {
-                                val index = value.toInt()
-                                return if (index in days.indices) days[index] else ""
+                        valueFormatter =
+                            object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                                private val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                                override fun getFormattedValue(value: Float): String {
+                                    val index = value.toInt()
+                                    return if (index in days.indices) days[index] else ""
+                                }
                             }
-                        }
                     }
                     axisLeft.apply {
                         setDrawGridLines(true)
@@ -433,10 +456,18 @@ fun Analytics(weeklyCalories: List<Float>, onRefresh: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color.White
+                    )
                 }
             }
-            Text("Weekly caloric intake", color = Color.White, fontWeight = FontWeight.W500)
+            Text(
+                "Weekly caloric intake",
+                color = Color.White,
+                fontWeight = FontWeight.W500
+            )
             SimpleLineChart(weeklyCalories)
         }
     }
@@ -457,7 +488,9 @@ fun Home(
     val goalSteps = settingsMap["goal_steps"]?.toIntOrNull() ?: 10000
     val goalWater = settingsMap["goal_water"]?.toIntOrNull() ?: 2000
 
-    var weeklyCalories by remember { mutableStateOf<List<Float>>(listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)) }
+    var weeklyCalories by remember {
+        mutableStateOf<List<Float>>(listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f))
+    }
     var refreshTrigger by remember { mutableStateOf(false) }
 
     val today = LocalDate.now().toString()
@@ -485,6 +518,28 @@ fun Home(
         loadWeeklyData()
     }
 
+    // Loading state for step sensor
+    val sensorAvailable by StepRepository.sensorAvailable.collectAsState()
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(sensorAvailable) {
+        if (sensorAvailable) isLoading = false
+    }
+    LaunchedEffect(Unit) {
+        delay(3000)
+        isLoading = false
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = productColor)
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -499,7 +554,10 @@ fun Home(
             goalType = goalType,
             refreshTrigger = refreshTrigger
         )
-        Analytics(weeklyCalories = weeklyCalories, onRefresh = { refreshTrigger = !refreshTrigger })
+        Analytics(
+            weeklyCalories = weeklyCalories,
+            onRefresh = { refreshTrigger = !refreshTrigger }
+        )
         StepCard(stepGoal = goalSteps)
         WaterCard(waterGoal = goalWater, waterViewModel = waterViewModel)
     }

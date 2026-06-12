@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Salubris"
 include(":app")
- 
+include(":llama")

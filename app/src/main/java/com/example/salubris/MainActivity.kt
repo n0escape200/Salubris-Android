@@ -13,49 +13,65 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.room.Room
 import androidx.work.*
+import com.arm.aichat.AiChat
+import com.arm.aichat.InferenceEngine
 import com.example.salubris.database.AppDatabase
 import com.example.salubris.stepcounter.StepService
 import com.example.salubris.ui.components.*
 import com.example.salubris.utils.FavoritesManager
 import com.example.salubris.utils.WaterResetWorker
-import com.example.salubris.utils.buildQwenPrompt
-import com.example.salubris.utils.copyModel
-import kotlinx.coroutines.launch
+import java.io.File
+import java.io.IOException
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        private const val TAG = "MainActivity"
-    }
+    // Required permissions
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.ACTIVITY_RECOGNITION,
+        Manifest.permission.FOREGROUND_SERVICE_HEALTH
+    )
 
-    private val multiplePermissionsLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val allGranted = permissions.values.all { it }
-            if (allGranted) startStepService()
+    private fun hasAllPermissions(): Boolean =
+        requiredPermissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    // Explicit type breaks circular inference
+    private val permissionsLauncher: ActivityResultLauncher<Array<String>> =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (hasAllPermissions()) {
+                showAppContent()
+                startStepService()
+            } else {
+                // Loop until granted
+                permissionsLauncher.launch(requiredPermissions)
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -66,29 +82,64 @@ class MainActivity : ComponentActivity() {
             "Salubris"
         ).build()
 
+        // Show permission request or the real UI
+        if (hasAllPermissions()) {
+            showAppContent()
+            startStepService()
+        } else {
+            // Embedded permission UI – no separate composable function
+            setContent {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF121212)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Permissions Required", color = Color.White, fontSize = 24.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "This app needs activity recognition and health service permissions to count your steps.",
+                            color = Color.LightGray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = { permissionsLauncher.launch(requiredPermissions) }) {
+                            Text("Grant Permissions")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Main app content
+    // -------------------------------------------------------------------------
+    private fun showAppContent() {
         setContent {
             val favoritesManager = remember { FavoritesManager(applicationContext) }
             val favorites by favoritesManager.favorites.collectAsState()
 
             val pagerState = rememberPagerState(pageCount = { favorites.size })
             val currentPage = remember { mutableStateOf(favorites.getOrNull(0) ?: "Home") }
+
             var overridePage by remember { mutableStateOf<String?>(null) }
             var navigateToPage by remember { mutableStateOf<String?>(null) }
 
             var showChatDialog by remember { mutableStateOf(false) }
+            var modelPath by remember { mutableStateOf<String?>(null) }
 
-            var isModelReady by remember { mutableStateOf(false) }
+            val engine = remember { AiChat.getInferenceEngine(applicationContext) }
 
-            // Initialize LLM *before* it is used
-            val llama = remember { LlamaChatHelper(applicationContext.contentResolver) }
-
+            // Copy model from assets and load it
             LaunchedEffect(Unit) {
-                val modelPath = copyModel(applicationContext, "qwen2.5-1.5b-instruct-q4_k_m.gguf")
-                llama.loadModel(modelPath)
-                isModelReady = true
+                val path = copyModel("Qwen3.5-0.8B-Q8_0.gguf")
+                engine.loadModel(path)
+                modelPath = path
             }
 
-            // Handle navigation requests via LaunchedEffect
             LaunchedEffect(navigateToPage) {
                 navigateToPage?.let { page ->
                     if (favorites.contains(page)) {
@@ -119,12 +170,11 @@ class MainActivity : ComponentActivity() {
                         Footer(
                             currentPage = currentPage.value,
                             favorites = favorites,
-                            onItemSelected = { label ->
-                                navigateToPage = label
-                            },
+                            onItemSelected = { label -> navigateToPage = label },
                             onUpdateFavorites = { newFavorites ->
                                 favoritesManager.saveFavorites(newFavorites)
                             },
+                            onOpenChat = { showChatDialog = true },
                             actions = listOf(
                                 FooterAction(
                                     icon = Icons.Default.Chat,
@@ -141,28 +191,44 @@ class MainActivity : ComponentActivity() {
                         currentPage = currentPage,
                         overridePage = overridePage,
                         onCloseOverride = { overridePage = null },
-                        onNavigateToPage = { page ->
-                            navigateToPage = page
-                        },
+                        onNavigateToPage = { page -> navigateToPage = page },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
 
-                if (showChatDialog) {
+                if (showChatDialog && modelPath != null) {
                     ChatDialog(
-                        isOpen = showChatDialog,
-                        onClose = { showChatDialog = false },
-                        onSend = { prompt ->
-                            if (!isModelReady) "Model not ready yet. Please try again."
-                            else llama.generate(buildQwenPrompt(prompt))
-                        }
+                        engine = engine,
+                        modelPath = modelPath!!,
+                        onDismiss = { showChatDialog = false }
                     )
                 }
             }
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Model helper
+    // -------------------------------------------------------------------------
+    private fun copyModel(assetFileName: String): String {
+        val modelFile = File(filesDir, "models/$assetFileName")
+        if (modelFile.exists()) return modelFile.absolutePath
+
+        modelFile.parentFile?.mkdirs()
+        assets.open(assetFileName).use { input ->
+            modelFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: throw IOException("Failed to copy model from assets")
+        return modelFile.absolutePath
+    }
+
+    // -------------------------------------------------------------------------
+    // Step service start
+    // -------------------------------------------------------------------------
     private fun startStepService() {
+        if (!hasAllPermissions()) return
+
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         if (stepSensor == null) return
@@ -171,6 +237,9 @@ class MainActivity : ComponentActivity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
+    // -------------------------------------------------------------------------
+    // Permission helpers (unchanged from your original)
+    // -------------------------------------------------------------------------
     private fun requestExactAlarmPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
