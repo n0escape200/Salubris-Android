@@ -4,15 +4,42 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,12 +51,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.viewmodels.*
+import com.example.salubris.database.repositories.StepRepository
+import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.database.viewmodels.TrackedItem
+import com.example.salubris.database.viewmodels.WaterViewModel
 import com.example.salubris.database.viewmodels.macroViewModelFactory
 import com.example.salubris.database.viewmodels.settingsViewModelFactory
 import com.example.salubris.database.viewmodels.waterViewModelFactory
-import com.example.salubris.stepcounter.StepRepository
-import com.example.salubris.ui.theme.*
+import com.example.salubris.ui.theme.ContainerBackground
+import com.example.salubris.ui.theme.MainContainerBorder
+import com.example.salubris.ui.theme.caloriesColor
+import com.example.salubris.ui.theme.productColor
+import com.example.salubris.ui.theme.submitColor
+import com.example.salubris.ui.theme.waterColor
+import com.example.salubris.utils.Vocabulary
 import com.example.salubris.utils.truncate2Decimals
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -44,7 +80,7 @@ import java.time.ZoneOffset
 import java.time.temporal.TemporalAdjusters
 
 fun calculateTotalCalories(list: List<TrackedItem>): Float {
-    return list.fold(0f) { total, item -> total + item.calories }
+    return list.fold(0f) { total, item -> total + item.calories * (item.amountOrMultiplier / 100) }
 }
 
 @Composable
@@ -64,16 +100,16 @@ fun Header(userName: String) {
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
-                    contentDescription = "User icon",
+                    contentDescription = Vocabulary.get().userIcon,
                     tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)) {
-                Text("Welcome back", color = Color.White)
+                Text(Vocabulary.get().welcomeBack, color = Color.White)
                 Text(
-                    if (userName.isBlank()) "User" else userName,
+                    if (userName.isBlank()) Vocabulary.get().userDefault else userName,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp
@@ -103,13 +139,18 @@ fun StepCard(stepGoal: Int) {
         ) {
             Icon(
                 Icons.Default.DirectionsWalk,
-                contentDescription = "Steps",
+                contentDescription = Vocabulary.get().stepsIcon,
                 tint = Color(0xFF4CAF50),
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Steps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    Vocabulary.get().steps,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
                 if (sensorAvailable) {
                     Text(
                         "$steps / $stepGoal",
@@ -127,13 +168,13 @@ fun StepCard(stepGoal: Int) {
                         trackColor = Color.DarkGray
                     )
                     Text(
-                        "${(progress * 100).toInt()}% • $remaining steps remaining",
+                        "${(progress * 100).toInt()}% • $remaining ${Vocabulary.get().remainingSteps}",
                         color = Color.LightGray,
                         fontSize = 12.sp
                     )
                 } else {
                     Text(
-                        "Step sensor not available",
+                        Vocabulary.get().stepSensorNotAvailable,
                         color = Color.LightGray,
                         fontSize = 14.sp
                     )
@@ -162,13 +203,18 @@ fun WaterCard(waterGoal: Int, waterViewModel: WaterViewModel) {
         ) {
             Icon(
                 Icons.Default.WaterDrop,
-                contentDescription = "Water",
+                contentDescription = Vocabulary.get().waterIcon,
                 tint = waterColor,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Water", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    Vocabulary.get().water,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
                 Text(
                     "$todayTotal / $waterGoal ml",
                     color = Color.White,
@@ -185,7 +231,7 @@ fun WaterCard(waterGoal: Int, waterViewModel: WaterViewModel) {
                     trackColor = Color.DarkGray
                 )
                 Text(
-                    "${(progress * 100).toInt()}% • $remaining ml remaining",
+                    "${(progress * 100).toInt()}% • $remaining ${Vocabulary.get().mlRemaining}",
                     color = Color.LightGray,
                     fontSize = 12.sp
                 )
@@ -238,13 +284,13 @@ fun TodayIntake(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.LocalFireDepartment,
-                    contentDescription = "Calories",
+                    contentDescription = Vocabulary.get().caloriesIcon,
                     tint = caloriesColor,
                     modifier = Modifier.size(30.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Today's Intake",
+                    Vocabulary.get().todaysIntake,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp
@@ -264,7 +310,7 @@ fun TodayIntake(
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp
             )
-            Text("calories", color = Color.LightGray)
+            Text(Vocabulary.get().calories, color = Color.LightGray)
             Spacer(Modifier.height(8.dp))
             LinearProgressIndicator(
                 progress = (totalCalories / goalCalories).coerceIn(0f, 1f),
@@ -280,63 +326,77 @@ fun TodayIntake(
                 isLoss -> {
                     if (remaining > 0) {
                         Text(
-                            text = "🎯 $remaining calories left",
+                            text = String.format(Vocabulary.get().caloriesLeft, remaining.toInt()),
                             color = submitColor,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Progress: ${"%.1f".format(progressPercentage)}%",
+                            text = String.format(
+                                Vocabulary.get().progressPercent,
+                                progressPercentage
+                            ),
                             color = Color.LightGray,
                             fontSize = 12.sp
                         )
                     } else {
                         Text(
-                            text = "⚠️ You've exceeded your goal",
+                            text = Vocabulary.get().exceededGoal,
                             color = Color(0xFFFF9800),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
+
                 isGain -> {
                     if (remaining > 0) {
                         Text(
-                            text = "💪 $remaining more calories needed",
+                            text = String.format(
+                                Vocabulary.get().moreCaloriesNeeded,
+                                remaining.toInt()
+                            ),
                             color = Color(0xFF4CAF50),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Progress: ${"%.1f".format(progressPercentage)}%",
+                            text = String.format(
+                                Vocabulary.get().progressPercent,
+                                progressPercentage
+                            ),
                             color = Color.LightGray,
                             fontSize = 12.sp
                         )
                     } else {
                         Text(
-                            text = "✅ Goal achieved!",
+                            text = Vocabulary.get().goalAchieved,
                             color = submitColor,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
+
                 isMaintain -> {
                     if (remaining > 0) {
                         Text(
-                            text = "$remaining calories remaining",
+                            text = String.format(
+                                Vocabulary.get().caloriesRemaining,
+                                remaining.toInt()
+                            ),
                             color = Color.LightGray,
                             fontSize = 14.sp
                         )
                     } else if (remaining < 0) {
                         Text(
-                            text = "Exceeded by ${-remaining} calories",
+                            text = String.format(Vocabulary.get().exceededBy, (-remaining).toInt()),
                             color = Color(0xFFFF9800),
                             fontSize = 14.sp
                         )
                     } else {
                         Text(
-                            text = "Perfect!",
+                            text = Vocabulary.get().perfect,
                             color = submitColor,
                             fontSize = 14.sp
                         )
@@ -359,7 +419,7 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
                 .border(1.dp, Color(0xFF4DB8FF), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text("No data this week", color = Color.LightGray, fontSize = 14.sp)
+            Text(Vocabulary.get().noDataThisWeek, color = Color.LightGray, fontSize = 14.sp)
         }
         return
     }
@@ -379,7 +439,7 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
                     val entries = weeklyData.mapIndexed { index, value ->
                         Entry(index.toFloat(), value)
                     }
-                    val dataSet = LineDataSet(entries, "Calories").apply {
+                    val dataSet = LineDataSet(entries, Vocabulary.get().calories).apply {
                         lineWidth = 3f
                         setDrawCircles(true)
                         circleRadius = 5f
@@ -402,7 +462,9 @@ fun SimpleLineChart(weeklyData: List<Float>, modifier: Modifier = Modifier) {
                         granularity = 1f
                         valueFormatter =
                             object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                                private val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                                private val days =
+                                    listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
                                 override fun getFormattedValue(value: Float): String {
                                     val index = value.toInt()
                                     return if (index in days.indices) days[index] else ""
@@ -443,12 +505,12 @@ fun Analytics(weeklyCalories: List<Float>, onRefresh: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = "Analytics",
+                    contentDescription = Vocabulary.get().analyticsIcon,
                     tint = Color(0, 255, 102),
                     modifier = Modifier.size(30.dp)
                 )
                 Text(
-                    "Analytics",
+                    Vocabulary.get().analytics,
                     modifier = Modifier.padding(start = 8.dp),
                     color = Color.White,
                     fontSize = 20.sp,
@@ -458,13 +520,13 @@ fun Analytics(weeklyCalories: List<Float>, onRefresh: () -> Unit) {
                 IconButton(onClick = onRefresh) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Refresh",
+                        contentDescription = Vocabulary.get().refreshIcon,
                         tint = Color.White
                     )
                 }
             }
             Text(
-                "Weekly caloric intake",
+                Vocabulary.get().weeklyCaloricIntake,
                 color = Color.White,
                 fontWeight = FontWeight.W500
             )
@@ -482,7 +544,7 @@ fun Home(
 ) {
     val settings by settingViewModel.settings.collectAsStateWithLifecycle()
     val settingsMap = remember(settings) { settings.associate { it.name to it.value } }
-    val userName = settingsMap["user_name"] ?: "User"
+    val userName = settingsMap["user_name"] ?: Vocabulary.get().userDefault
     val goalCalories = settingsMap["recommended_calories"]?.toIntOrNull() ?: 2000
     val goalType = settingsMap["user_goal"] ?: "MAINTAIN"
     val goalSteps = settingsMap["goal_steps"]?.toIntOrNull() ?: 10000
@@ -507,7 +569,8 @@ fun Home(
             for (date in days) {
                 val startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
                 val items = macroViewModel.getTrackedItemsForDay(startOfDay)
-                val totalCal = items.sumOf { it.calories.toDouble() }.toFloat()
+                val totalCal =
+                    items.sumOf { (it.calories * it.amountOrMultiplier / 100).toDouble() }.toFloat()
                 results.add(totalCal)
             }
             weeklyCalories = results
@@ -518,15 +581,19 @@ fun Home(
         loadWeeklyData()
     }
 
-    // Loading state for step sensor
-    val sensorAvailable by StepRepository.sensorAvailable.collectAsState()
+    // --- Loading state: wait for sensor or timeout (2 seconds) ---
     var isLoading by remember { mutableStateOf(true) }
+    val sensorAvailable by StepRepository.sensorAvailable.collectAsState()
 
     LaunchedEffect(sensorAvailable) {
-        if (sensorAvailable) isLoading = false
+        if (sensorAvailable) {
+            isLoading = false
+        }
     }
+
+    // Fallback: hide loading after 2 seconds even if sensor not ready
     LaunchedEffect(Unit) {
-        delay(3000)
+        delay(2000)
         isLoading = false
     }
 

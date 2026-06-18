@@ -17,26 +17,18 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.StepHistoryEntity
+import com.example.salubris.database.repositories.StepHistoryRepository
+import com.example.salubris.database.repositories.StepRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
-
-object StepRepository {
-    private val _steps = MutableStateFlow(0)
-    val steps: StateFlow<Int> = _steps
-
-    private val _sensorAvailable = MutableStateFlow(true)
-    val sensorAvailable: StateFlow<Boolean> = _sensorAvailable
-
-    fun updateSteps(value: Int) {
-        _steps.value = value
-    }
-
-    fun setSensorAvailable(available: Boolean) {
-        _sensorAvailable.value = available
-    }
-}
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class StepService : Service(), SensorEventListener {
 
@@ -54,6 +46,7 @@ class StepService : Service(), SensorEventListener {
     private var baseSteps = -1f
     private var currentSteps = 0
     private var lastResetDate: String? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -66,9 +59,8 @@ class StepService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action: ${intent?.action}")
 
-        // If no step sensor, show a dummy notification and stop gracefully
         if (stepSensor == null) {
-            Log.e(TAG, "No step counter sensor. Showing notification and stopping.")
+            Log.e(TAG, "No step counter sensor.")
             StepRepository.setSensorAvailable(false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -83,7 +75,7 @@ class StepService : Service(), SensorEventListener {
             return START_NOT_STICKY
         }
 
-        // Sensor exists, now start foreground properly
+        // Sensor exists, start foreground
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
@@ -96,7 +88,10 @@ class StepService : Service(), SensorEventListener {
         StepRepository.setSensorAvailable(true)
 
         when (intent?.action) {
-            ACTION_RESET_STEPS -> resetSteps()
+            ACTION_RESET_STEPS -> {
+                // Save current steps to history before resetting
+                saveAndReset()
+            }
         }
 
         if (baseSteps < 0) {
@@ -157,12 +152,47 @@ class StepService : Service(), SensorEventListener {
         Log.d(TAG, "Task removed, scheduling service restart")
     }
 
+    /**
+     * Saves current steps to history, then resets the counter.
+     * Called at midnight by the AlarmManager.
+     * Uses yesterday's date to ensure we save the completed day's steps.
+     */
+    private fun saveAndReset() {
+        serviceScope.launch {
+            try {
+                // Use yesterday's date because the reset happens at midnight
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.DAY_OF_YEAR, -1)
+                val yesterday =
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
+                val currentCount = StepRepository.steps.value
+                val repository = StepHistoryRepository(
+                    AppDatabase.getDatabase(applicationContext).stepHistoryDao()
+                )
+                repository.insertStepHistory(
+                    StepHistoryEntity(
+                        date = yesterday,
+                        steps = currentCount
+                    )
+                )
+                Log.d(TAG, "Saved $currentCount steps to history for $yesterday")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save step history", e)
+            } finally {
+                resetSteps()
+            }
+        }
+    }
+
+    /**
+     * Resets the internal step counter without saving.
+     */
     private fun resetSteps() {
         baseSteps = -1f
         currentSteps = 0
         StepRepository.updateSteps(0)
         updateNotification(0)
-        Log.d(TAG, "Steps manually reset")
+        Log.d(TAG, "Steps reset")
     }
 
     private fun scheduleMidnightReset() {

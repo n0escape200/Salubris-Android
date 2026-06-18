@@ -33,41 +33,52 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.room.Room
 import androidx.work.*
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.database.viewmodels.settingsViewModelFactory
 import com.example.salubris.stepcounter.StepService
 import com.example.salubris.ui.components.*
 import com.example.salubris.utils.FavoritesManager
+import com.example.salubris.utils.Vocabulary
 import com.example.salubris.utils.WaterResetWorker
 import java.io.File
 import java.io.IOException
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import com.example.salubris.nutrition.MultiSourceWebScraper
+import com.example.salubris.BuildConfig
 
 class MainActivity : ComponentActivity() {
 
-    // Required permissions
-    private val requiredPermissions = arrayOf(
+    private val requiredPermissions = mutableListOf(
         Manifest.permission.ACTIVITY_RECOGNITION,
         Manifest.permission.FOREGROUND_SERVICE_HEALTH
-    )
+    ).apply {
+        // POST_NOTIFICATIONS is required on Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray()
 
     private fun hasAllPermissions(): Boolean =
         requiredPermissions.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
 
-    // Explicit type breaks circular inference
     private val permissionsLauncher: ActivityResultLauncher<Array<String>> =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             if (hasAllPermissions()) {
                 showAppContent()
                 startStepService()
+                requestExactAlarmPermissionIfNeeded()
+                requestIgnoreBatteryOptimizations()
             } else {
-                // Loop until granted
+                // If user denies, show the permission screen again
                 permissionsLauncher.launch(requiredPermissions)
             }
         }
@@ -82,12 +93,12 @@ class MainActivity : ComponentActivity() {
             "Salubris"
         ).build()
 
-        // Show permission request or the real UI
         if (hasAllPermissions()) {
             showAppContent()
             startStepService()
+            requestExactAlarmPermissionIfNeeded()
+            requestIgnoreBatteryOptimizations()
         } else {
-            // Embedded permission UI – no separate composable function
             setContent {
                 Box(
                     modifier = Modifier
@@ -96,17 +107,21 @@ class MainActivity : ComponentActivity() {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Permissions Required", color = Color.White, fontSize = 24.sp)
+                        Text(
+                            Vocabulary.get().permissionsRequiredTitle,
+                            color = Color.White,
+                            fontSize = 24.sp
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "This app needs activity recognition and health service permissions to count your steps.",
+                            Vocabulary.get().permissionsRequiredDescription,
                             color = Color.LightGray,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 32.dp)
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(onClick = { permissionsLauncher.launch(requiredPermissions) }) {
-                            Text("Grant Permissions")
+                            Text(Vocabulary.get().grantPermissions)
                         }
                     }
                 }
@@ -114,14 +129,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Main app content
-    // -------------------------------------------------------------------------
     private fun showAppContent() {
         setContent {
+            // Load saved language from database on app start
+            val settingViewModel: SettingViewModel = viewModel(
+                factory = settingsViewModelFactory(applicationContext)
+            )
+            val settings by settingViewModel.settings.collectAsState()
+            val settingsMap = remember(settings) { settings.associate { it.name to it.value } }
+            val savedLanguage = settingsMap["language"] ?: "en"
+
+            LaunchedEffect(Unit) {
+                Vocabulary.setLanguage(savedLanguage)
+            }
+
+            val language by Vocabulary.currentLanguage.collectAsState()
+
+            // --- Page state (outside the key block) – persists across language changes ---
             val favoritesManager = remember { FavoritesManager(applicationContext) }
             val favorites by favoritesManager.favorites.collectAsState()
-
             val pagerState = rememberPagerState(pageCount = { favorites.size })
             val currentPage = remember { mutableStateOf(favorites.getOrNull(0) ?: "Home") }
 
@@ -133,11 +159,18 @@ class MainActivity : ComponentActivity() {
 
             val engine = remember { AiChat.getInferenceEngine(applicationContext) }
 
-            // Copy model from assets and load it
+            // Safe model loading – only load if not already ready
             LaunchedEffect(Unit) {
-                val path = copyModel("Qwen3.5-0.8B-Q8_0.gguf")
-                engine.loadModel(path)
-                modelPath = path
+                val state = engine.state.value
+                val modelFile = File(filesDir, "models/Qwen3.5-0.8B-Q8_0.gguf")
+
+                if (state is InferenceEngine.State.ModelReady) {
+                    modelPath = modelFile.absolutePath
+                } else {
+                    val path = copyModel("Qwen3.5-0.8B-Q8_0.gguf")
+                    engine.loadModel(path)
+                    modelPath = path
+                }
             }
 
             LaunchedEffect(navigateToPage) {
@@ -155,61 +188,62 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF232323), Color(0xFF121212))
-                        )
-                    )
-            ) {
-                Scaffold(
-                    containerColor = Color.Transparent,
-                    bottomBar = {
-                        Footer(
-                            currentPage = currentPage.value,
-                            favorites = favorites,
-                            onItemSelected = { label -> navigateToPage = label },
-                            onUpdateFavorites = { newFavorites ->
-                                favoritesManager.saveFavorites(newFavorites)
-                            },
-                            onOpenChat = { showChatDialog = true },
-                            actions = listOf(
-                                FooterAction(
-                                    icon = Icons.Default.Chat,
-                                    contentDescription = "AI Assistant",
-                                    onClick = { showChatDialog = true }
-                                )
+            // Wrap ONLY the UI with key(language) – page state stays unchanged
+            key(language) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF232323), Color(0xFF121212))
                             )
                         )
+                ) {
+                    Scaffold(
+                        containerColor = Color.Transparent,
+                        bottomBar = {
+                            Footer(
+                                currentPage = currentPage.value,
+                                favorites = favorites,
+                                onItemSelected = { label -> navigateToPage = label },
+                                onUpdateFavorites = { newFavorites ->
+                                    favoritesManager.saveFavorites(newFavorites)
+                                },
+                                onOpenChat = { showChatDialog = true },
+                                actions = listOf(
+                                    FooterAction(
+                                        icon = Icons.Default.Chat,
+                                        contentDescription = Vocabulary.get().aiAssistant,
+                                        onClick = { showChatDialog = true }
+                                    )
+                                )
+                            )
+                        }
+                    ) { innerPadding ->
+                        HomeTabsScreen(
+                            favorites = favorites,
+                            pagerState = pagerState,
+                            currentPage = currentPage,
+                            overridePage = overridePage,
+                            onCloseOverride = { overridePage = null },
+                            onNavigateToPage = { page -> navigateToPage = page },
+                            modifier = Modifier.padding(innerPadding)
+                        )
                     }
-                ) { innerPadding ->
-                    HomeTabsScreen(
-                        favorites = favorites,
-                        pagerState = pagerState,
-                        currentPage = currentPage,
-                        overridePage = overridePage,
-                        onCloseOverride = { overridePage = null },
-                        onNavigateToPage = { page -> navigateToPage = page },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
 
-                if (showChatDialog && modelPath != null) {
-                    ChatDialog(
-                        engine = engine,
-                        modelPath = modelPath!!,
-                        onDismiss = { showChatDialog = false }
-                    )
+                    if (showChatDialog && modelPath != null) {
+                        ChatDialog(
+                            engine = engine,
+                            modelPath = modelPath!!,
+                            webSearchService = MultiSourceWebScraper(usdaApiKey = BuildConfig.USDA_API_KEY),
+                            onDismiss = { showChatDialog = false }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Model helper
-    // -------------------------------------------------------------------------
     private fun copyModel(assetFileName: String): String {
         val modelFile = File(filesDir, "models/$assetFileName")
         if (modelFile.exists()) return modelFile.absolutePath
@@ -223,9 +257,6 @@ class MainActivity : ComponentActivity() {
         return modelFile.absolutePath
     }
 
-    // -------------------------------------------------------------------------
-    // Step service start
-    // -------------------------------------------------------------------------
     private fun startStepService() {
         if (!hasAllPermissions()) return
 
@@ -237,9 +268,6 @@ class MainActivity : ComponentActivity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
-    // -------------------------------------------------------------------------
-    // Permission helpers (unchanged from your original)
-    // -------------------------------------------------------------------------
     private fun requestExactAlarmPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager

@@ -4,7 +4,19 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,8 +26,28 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Flatware
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,11 +64,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.salubris.database.entities.MealWithProducts
 import com.example.salubris.database.entities.Product
-import com.example.salubris.database.viewmodels.*
+import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.MealViewModel
+import com.example.salubris.database.viewmodels.ProductViewModel
+import com.example.salubris.database.viewmodels.SettingViewModel
+import com.example.salubris.database.viewmodels.TrackedItem
+import com.example.salubris.database.viewmodels.macroViewModelFactory
+import com.example.salubris.database.viewmodels.mealViewModelFactory
+import com.example.salubris.database.viewmodels.productViewModelFactory
+import com.example.salubris.database.viewmodels.settingsViewModelFactory
 import com.example.salubris.ui.components.FilterableDropdown
 import com.example.salubris.ui.components.Input
-import com.example.salubris.ui.theme.*
+import com.example.salubris.ui.theme.ContainerBackground
+import com.example.salubris.ui.theme.caloriesColor
+import com.example.salubris.ui.theme.cancelColor
+import com.example.salubris.ui.theme.carbsColor
+import com.example.salubris.ui.theme.fatsColor
+import com.example.salubris.ui.theme.mealColor
+import com.example.salubris.ui.theme.productColor
+import com.example.salubris.ui.theme.proteinColor
+import com.example.salubris.ui.theme.submitColor
 import com.example.salubris.utils.ProductNutritionLabel
+import com.example.salubris.utils.Vocabulary
 import com.example.salubris.utils.calculateMacrosForProduct
 import com.example.salubris.utils.truncate2Decimals
 import kotlinx.coroutines.launch
@@ -115,10 +164,12 @@ fun Macros(
                 "fats" to 0f
             )
             items.forEach { item ->
-                macros["calories"] = macros["calories"]!! + item.calories
-                macros["protein"] = macros["protein"]!! + item.protein
-                macros["carbs"] = macros["carbs"]!! + item.carbs
-                macros["fats"] = macros["fats"]!! + item.fats
+                macros["calories"] =
+                    macros["calories"]!! + (item.calories * item.amountOrMultiplier / 100)
+                macros["protein"] =
+                    macros["protein"]!! + item.protein * item.amountOrMultiplier / 100
+                macros["carbs"] = macros["carbs"]!! + item.carbs * item.amountOrMultiplier / 100
+                macros["fats"] = macros["fats"]!! + item.fats * item.amountOrMultiplier / 100
             }
             totalMacros = macros
         }
@@ -138,9 +189,14 @@ fun Macros(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Flatware, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.Default.Flatware,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
                     Spacer(Modifier.width(6.dp))
-                    Text("Meals", color = Color.White)
+                    Text(Vocabulary.get().meals, color = Color.White)
                 }
                 Text("/", color = Color.White, fontWeight = FontWeight.W800, fontSize = 30.sp)
                 Button(
@@ -149,9 +205,14 @@ fun Macros(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Fastfood, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.Default.Fastfood,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
                     Spacer(Modifier.width(6.dp))
-                    Text("Products", color = Color.White)
+                    Text(Vocabulary.get().products, color = Color.White)
                 }
             }
 
@@ -167,9 +228,18 @@ fun Macros(
                         .fillMaxWidth()
                         .padding(10.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Assignment, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.Assignment,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
                     Spacer(Modifier.width(10.dp))
-                    Text("Macros for ", color = Color.White, fontWeight = FontWeight.W600)
+                    Text(
+                        Vocabulary.get().macrosFor,
+                        color = Color.White,
+                        fontWeight = FontWeight.W600
+                    )
                     Text(
                         text = selectedDateText,
                         color = Color.White,
@@ -187,10 +257,26 @@ fun Macros(
                         .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroBadge("Kcal", totalMacros["calories"]!!.truncate2Decimals().toString(), caloriesColor)
-                    MacroBadge("Protein", totalMacros["protein"]!!.truncate2Decimals().toString(), proteinColor)
-                    MacroBadge("Carbs", totalMacros["carbs"]!!.truncate2Decimals().toString(), carbsColor)
-                    MacroBadge("Fats", totalMacros["fats"]!!.truncate2Decimals().toString(), fatsColor)
+                    MacroBadge(
+                        Vocabulary.get().kcalShort,
+                        totalMacros["calories"]!!.truncate2Decimals().toString(),
+                        caloriesColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().proteinShort,
+                        totalMacros["protein"]!!.truncate2Decimals().toString(),
+                        proteinColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().carbsShort,
+                        totalMacros["carbs"]!!.truncate2Decimals().toString(),
+                        carbsColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().fatsShort,
+                        totalMacros["fats"]!!.truncate2Decimals().toString(),
+                        fatsColor
+                    )
                 }
             }
 
@@ -212,15 +298,47 @@ fun Macros(
                         ) {
                             Column {
                                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(item.name, fontSize = 20.sp, fontWeight = FontWeight.W600, fontStyle = FontStyle.Italic, color = Color.White)
+                                    Text(
+                                        item.name,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.W600,
+                                        fontStyle = FontStyle.Italic,
+                                        color = Color.White
+                                    )
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text(item.calories.truncate2Decimals().toString(), color = caloriesColor)
-                                        Text(item.protein.truncate2Decimals().toString(), color = proteinColor)
-                                        Text(item.carbs.truncate2Decimals().toString(), color = carbsColor)
-                                        Text(item.fats.truncate2Decimals().toString(), color = fatsColor)
+                                        Text(
+                                            (item.calories * (item.amountOrMultiplier / 100)).truncate2Decimals()
+                                                .toString(),
+                                            color = caloriesColor
+                                        )
+                                        Text(
+                                            (item.protein * (item.amountOrMultiplier / 100)).truncate2Decimals()
+                                                .toString(),
+                                            color = proteinColor
+                                        )
+                                        Text(
+                                            (item.carbs * (item.amountOrMultiplier / 100)).truncate2Decimals()
+                                                .toString(),
+                                            color = carbsColor
+                                        )
+                                        Text(
+                                            (item.fats * (item.amountOrMultiplier / 100)).truncate2Decimals()
+                                                .toString(),
+                                            color = fatsColor
+                                        )
                                     }
                                     Text(
-                                        text = if (item.type == "product") "Amount: ${item.amountOrMultiplier}g" else "Quantity: ${item.amountOrMultiplier}g",
+                                        text = if (item.type == "product") {
+                                            String.format(
+                                                Vocabulary.get().amountLabel,
+                                                item.amountOrMultiplier
+                                            )
+                                        } else {
+                                            String.format(
+                                                Vocabulary.get().quantityLabelMeal,
+                                                item.amountOrMultiplier
+                                            )
+                                        },
                                         fontSize = 12.sp,
                                         color = Color.White.copy(alpha = 0.6f)
                                     )
@@ -244,7 +362,12 @@ fun Macros(
                                         shape = RoundedCornerShape(8.dp)
                                     )
                             ) {
-                                Icon(Icons.Default.Delete, null, tint = cancelColor, modifier = Modifier.size(30.dp))
+                                Icon(
+                                    Icons.Default.Delete,
+                                    null,
+                                    tint = cancelColor,
+                                    modifier = Modifier.size(30.dp)
+                                )
                             }
                         }
                     }
@@ -284,14 +407,31 @@ fun Macros(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Add a product", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    Vocabulary.get().addProductTitle,
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 IconButton(onClick = { openProducts = false }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = Vocabulary.get().close,
+                                        tint = Color.White
+                                    )
                                 }
                             }
                             ProductSelectionContent(
                                 onAdd = { product, amount ->
-                                    macroViewModel.saveMacroLine(product.name, product.calories, product.protein, product.carbs, product.fats, amount, System.currentTimeMillis())
+                                    macroViewModel.saveMacroLine(
+                                        product.name,
+                                        product.calories,
+                                        product.protein,
+                                        product.carbs,
+                                        product.fats,
+                                        amount,
+                                        System.currentTimeMillis()
+                                    )
                                     reload = true
                                     openProducts = false
                                 },
@@ -339,15 +479,28 @@ fun Macros(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Add a meal", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    Vocabulary.get().addMealTitle,
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 IconButton(onClick = { openMeals = false }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = Vocabulary.get().close,
+                                        tint = Color.White
+                                    )
                                 }
                             }
                             MealSelectionContent(
                                 meals = mealViewModel.mealsWithProducts.collectAsState().value,
                                 onAdd = { mealId, quantityGrams ->
-                                    macroViewModel.saveMeal(mealId, quantityGrams, System.currentTimeMillis())
+                                    macroViewModel.saveMeal(
+                                        mealId,
+                                        quantityGrams,
+                                        System.currentTimeMillis()
+                                    )
                                     reload = true
                                     openMeals = false
                                 },
@@ -365,8 +518,16 @@ fun Macros(
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = { TextButton(onClick = { showDatePicker = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                }) { Text(Vocabulary.get().ok) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                }) { Text(Vocabulary.get().cancel) }
+            }
         ) {
             DatePicker(state = datePickerState, showModeToggle = false)
         }
@@ -389,18 +550,27 @@ private fun GoalFeedbackPreview(
 
     val message = when {
         isLoss -> {
-            if (remaining > 0) "After adding: 🎯 $remaining kcal left to stay in deficit"
-            else "⚠️ After adding: You will exceed your calorie goal"
+            if (remaining > 0) String.format(Vocabulary.get().afterAddingDeficit, remaining.toInt())
+            else Vocabulary.get().afterAddingExceeded
         }
+
         isGain -> {
-            if (remaining > 0) "After adding: 💪 $remaining more kcal needed to reach surplus"
-            else "✅ After adding: You will meet or exceed your surplus goal"
+            if (remaining > 0) String.format(Vocabulary.get().afterAddingSurplus, remaining.toInt())
+            else Vocabulary.get().afterAddingGoalMet
         }
+
         isMaintain -> {
-            if (remaining > 0) "$remaining kcal remaining to maintain weight"
-            else if (remaining < 0) "Will exceed maintenance by ${-remaining.toInt()} kcal"
-            else "Perfect! You'll exactly hit your maintenance goal"
+            if (remaining > 0) String.format(
+                Vocabulary.get().remainingToMaintain,
+                remaining.toInt()
+            )
+            else if (remaining < 0) String.format(
+                Vocabulary.get().exceedMaintenance,
+                (-remaining).toInt()
+            )
+            else Vocabulary.get().perfectMaintain
         }
+
         else -> ""
     }
 
@@ -410,6 +580,7 @@ private fun GoalFeedbackPreview(
             isGain -> Color(0xFF4CAF50)
             else -> Color.LightGray
         }
+
         else -> cancelColor
     }
 
@@ -419,7 +590,12 @@ private fun GoalFeedbackPreview(
             .background(ContainerBackground, RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
-        Text("Effect on your daily goal", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(
+            Vocabulary.get().effectOnGoal,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
         Spacer(Modifier.height(4.dp))
         LinearProgressIndicator(
             progress = percentage,
@@ -467,14 +643,15 @@ private fun ProductSelectionContent(
             onItemSelected = { product ->
                 selectedProduct = product
             },
-            label = "Select a product",
+            label = Vocabulary.get().selectProduct,
             displayText = { it.name }
         )
 
         if (selectedProduct != null) {
             ProductNutritionLabel(selectedProduct!!)
             Input(
-                label = "Amount (g)",
+                label = String.format(Vocabulary.get().amountGrams, "")
+                    .trim(), // simpler: use existing key
                 value = amount,
                 onChange = { value ->
                     amount = value
@@ -496,9 +673,14 @@ private fun ProductSelectionContent(
                     goalType = goalType
                 )
             } else if (goalCalories == 0) {
-                Text("No goal set", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.W600)
                 Text(
-                    "We recommend that you set a main goal inside the settings section for a better experience",
+                    Vocabulary.get().noGoalSet,
+                    color = Color.White,
+                    fontSize = 27.sp,
+                    fontWeight = FontWeight.W600
+                )
+                Text(
+                    Vocabulary.get().recommendSetGoal,
                     color = Color(204, 204, 204, 255),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.W600,
@@ -514,20 +696,41 @@ private fun ProductSelectionContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Preview macro intake", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.W600)
+                Text(
+                    Vocabulary.get().previewMacroIntake,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.W600
+                )
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    MacroBadge("Kcal", calories.truncate2Decimals().toString(), caloriesColor)
-                    MacroBadge("Protein", protein.truncate2Decimals().toString(), proteinColor)
-                    MacroBadge("Carbs", carbs.truncate2Decimals().toString(), carbsColor)
-                    MacroBadge("Fats", fats.truncate2Decimals().toString(), fatsColor)
+                    MacroBadge(
+                        Vocabulary.get().kcalShort,
+                        calories.truncate2Decimals().toString(),
+                        caloriesColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().proteinShort,
+                        protein.truncate2Decimals().toString(),
+                        proteinColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().carbsShort,
+                        carbs.truncate2Decimals().toString(),
+                        carbsColor
+                    )
+                    MacroBadge(
+                        Vocabulary.get().fatsShort,
+                        fats.truncate2Decimals().toString(),
+                        fatsColor
+                    )
                 }
             }
         } else {
             Text(
-                "Please select a product to continue",
+                Vocabulary.get().pleaseSelectProduct,
                 color = Color(154, 154, 154, 255),
                 fontSize = 17.sp,
                 fontStyle = FontStyle.Italic
@@ -544,7 +747,7 @@ private fun ProductSelectionContent(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = productColor)
         ) {
-            Text("Add to today", color = Color.White)
+            Text(Vocabulary.get().addToToday, color = Color.White)
         }
     }
 }
@@ -561,6 +764,9 @@ private fun MealSelectionContent(
     var selectedMeal by remember { mutableStateOf<MealWithProducts?>(null) }
     var quantity by remember { mutableStateOf("") }
 
+    // Add state for multiplier
+    var multiplier by remember { mutableStateOf(0f) }
+
     var previewCalories by remember { mutableFloatStateOf(0f) }
     var previewProtein by remember { mutableFloatStateOf(0f) }
     var previewCarbs by remember { mutableFloatStateOf(0f) }
@@ -570,7 +776,7 @@ private fun MealSelectionContent(
         if (selectedMeal != null && quantity.toFloatOrNull() != null) {
             val quantityGrams = quantity.toFloat()
             val totalWeight = selectedMeal!!.products.sumOf { it.quantity.toDouble() }.toFloat()
-            val multiplier = if (totalWeight > 0) quantityGrams / totalWeight else 0f
+            multiplier = if (totalWeight > 0) quantityGrams / totalWeight else 0f
 
             var totalCal = 0f
             var totalProt = 0f
@@ -594,6 +800,7 @@ private fun MealSelectionContent(
             previewProtein = 0f
             previewCarbs = 0f
             previewFats = 0f
+            multiplier = 0f
         }
     }
 
@@ -604,13 +811,13 @@ private fun MealSelectionContent(
             onItemSelected = { meal ->
                 selectedMeal = meal
             },
-            label = "Select a meal",
+            label = Vocabulary.get().selectMeal,
             displayText = { it.meal.name },
             modifier = Modifier.fillMaxWidth()
         )
 
         if (selectedMeal != null) {
-            Text("Meal contains:", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(Vocabulary.get().mealContains, color = Color.White, fontWeight = FontWeight.Bold)
             Column(modifier = Modifier.padding(start = 8.dp)) {
                 selectedMeal!!.products.forEach { productWithQty ->
                     Text(
@@ -623,11 +830,15 @@ private fun MealSelectionContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             val totalWeight = selectedMeal!!.products.sumOf { it.quantity.toDouble() }.toFloat()
-            Text("Total meal weight: ${totalWeight.truncate2Decimals()}g", color = Color.White, fontSize = 14.sp)
+            Text(
+                String.format(Vocabulary.get().totalMealWeight, totalWeight.truncate2Decimals()),
+                color = Color.White,
+                fontSize = 14.sp
+            )
             Spacer(modifier = Modifier.height(4.dp))
 
             Input(
-                label = "Quantity consumed (g)",
+                label = Vocabulary.get().quantityConsumed,
                 value = quantity,
                 onChange = { quantity = it },
                 keyboardType = KeyboardType.Number
@@ -635,9 +846,8 @@ private fun MealSelectionContent(
 
             val quantityFloat = quantity.toFloatOrNull()
             if (quantityFloat != null && quantityFloat > 0) {
-                val multiplier = quantityFloat / totalWeight
                 Text(
-                    "Serving factor: ${multiplier.truncate2Decimals()}x",
+                    String.format(Vocabulary.get().servingFactor, multiplier.truncate2Decimals()),
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 12.sp
                 )
@@ -652,9 +862,14 @@ private fun MealSelectionContent(
                     goalType = goalType
                 )
             } else if (goalCalories == 0) {
-                Text("No goal set", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.W600)
                 Text(
-                    "We recommend that you set a main goal inside the settings section for a better experience",
+                    Vocabulary.get().noGoalSet,
+                    color = Color.White,
+                    fontSize = 27.sp,
+                    fontWeight = FontWeight.W600
+                )
+                Text(
+                    Vocabulary.get().recommendSetGoal,
                     color = Color(204, 204, 204, 255),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.W600,
@@ -672,21 +887,42 @@ private fun MealSelectionContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Macro preview", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        Vocabulary.get().macroPreview,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        MacroBadge("Kcal", previewCalories.truncate2Decimals().toString(), caloriesColor)
-                        MacroBadge("Protein", previewProtein.truncate2Decimals().toString(), proteinColor)
-                        MacroBadge("Carbs", previewCarbs.truncate2Decimals().toString(), carbsColor)
-                        MacroBadge("Fats", previewFats.truncate2Decimals().toString(), fatsColor)
+                        MacroBadge(
+                            Vocabulary.get().kcalShort,
+                            previewCalories.truncate2Decimals().toString(),
+                            caloriesColor
+                        )
+                        MacroBadge(
+                            Vocabulary.get().proteinShort,
+                            previewProtein.truncate2Decimals().toString(),
+                            proteinColor
+                        )
+                        MacroBadge(
+                            Vocabulary.get().carbsShort,
+                            previewCarbs.truncate2Decimals().toString(),
+                            carbsColor
+                        )
+                        MacroBadge(
+                            Vocabulary.get().fatsShort,
+                            previewFats.truncate2Decimals().toString(),
+                            fatsColor
+                        )
                     }
                 }
             }
         } else {
             Text(
-                "Please select a meal",
+                Vocabulary.get().pleaseSelectMeal,
                 color = Color.Gray,
                 fontStyle = FontStyle.Italic
             )
@@ -702,7 +938,7 @@ private fun MealSelectionContent(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = productColor)
         ) {
-            Text("Add to today", color = Color.White)
+            Text(Vocabulary.get().addToToday, color = Color.White)
         }
     }
 }

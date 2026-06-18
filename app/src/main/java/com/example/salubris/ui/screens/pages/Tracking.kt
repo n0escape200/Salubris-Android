@@ -11,15 +11,14 @@ import com.example.salubris.ui.components.PageModal
 import com.example.salubris.ui.screens.subpages.Macros
 import com.example.salubris.ui.screens.subpages.Steps
 import com.example.salubris.ui.screens.subpages.Water
-
+import com.example.salubris.utils.Vocabulary
 
 @RequiresApi(Build.VERSION_CODES.O)
 val tabs = mapOf<String, @Composable () -> Unit>(
-    "Macros" to { Macros() },
-    "Steps" to { Steps() },
-    "Water" to { Water() },
+    Vocabulary.get().macros to { Macros() },
+    Vocabulary.get().steps to { Steps() },
+    Vocabulary.get().water to { Water() },
 )
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,8 +10,13 @@ plugins {
 
 android {
     namespace = "com.example.salubris"
-    compileSdk {
-        version = release(36)
+    compileSdk = 36  // Fixed syntax (was: version = release(36))
+
+    // Read API keys from local.properties (safe, git‑ignored)
+    val localProperties = Properties()
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        localProperties.load(FileInputStream(localFile))
     }
 
     defaultConfig {
@@ -19,6 +27,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // USDA API key from local.properties (empty if not set)
+        buildConfigField(
+            "String",
+            "USDA_API_KEY",
+            "\"${localProperties.getProperty("USDA_API_KEY", "")}\""
+        )
     }
 
     buildTypes {
@@ -37,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -45,8 +61,9 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(project(":llama"))
     implementation(libs.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.benchmark.traceprocessor)
     val room_version = "2.8.4"
-    val ktor_version= "3.4.1"
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -81,10 +98,11 @@ dependencies {
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.accompanist:accompanist-permissions:0.37.3")
-    implementation("io.ktor:ktor-client-core:${ktor_version}")
-    implementation("io.ktor:ktor-client-cio:${ktor_version}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
 }

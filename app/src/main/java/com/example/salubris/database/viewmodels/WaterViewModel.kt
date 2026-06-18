@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.DailyWaterHistory
 import com.example.salubris.database.entities.WaterEntry
 import com.example.salubris.database.repositories.WaterRepository
 import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
@@ -51,6 +52,17 @@ class WaterViewModel(
         viewModelScope.launch {
             repository.getTodayTotal(date).collect { total ->
                 _todayTotal.value = total ?: 0
+            }
+        }
+    }
+
+    private val _history = MutableStateFlow<List<DailyWaterHistory>>(emptyList())
+    val history: StateFlow<List<DailyWaterHistory>> = _history.asStateFlow()
+
+    fun loadHistory() {
+        viewModelScope.launch {
+            repository.getAllHistory().collect { historyList ->
+                _history.value = historyList
             }
         }
     }

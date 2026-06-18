@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.Purple80
 import com.example.salubris.ui.theme.submitColor
+import com.example.salubris.utils.Vocabulary
 
 @Composable
 fun ProfileSetupTab(
@@ -41,7 +42,7 @@ fun ProfileSetupTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            "Your nutritional profile",
+            Vocabulary.get().yourNutritionalProfile,
             color = Color.White,
             fontSize = 22.sp,
             fontWeight = FontWeight.W500
@@ -50,7 +51,7 @@ fun ProfileSetupTab(
         if (hasProfile && recommendedCalories != null) {
             // Profile exists – show all stored data
             Text(
-                text = "✅ Profile complete",
+                text = "✅ ${Vocabulary.get().profileComplete}",
                 color = submitColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
@@ -62,28 +63,30 @@ fun ProfileSetupTab(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "Personal Info",
+                    text = Vocabulary.get().personalInfo,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "• Age: ${age ?: "—"} years",
+                    text = "• ${Vocabulary.get().ageLabel}: ${age ?: "—"} ${Vocabulary.get().years}",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "• Sex: ${sex?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "—"}",
+                    text = "• ${Vocabulary.get().sexLabel}: ${
+                        sex?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "—"
+                    }",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "• Height: ${heightCm ?: "—"} cm",
+                    text = "• ${Vocabulary.get().heightLabel}: ${heightCm ?: "—"} ${Vocabulary.get().cm}",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "• Weight: ${weightKg ?: "—"} kg",
+                    text = "• ${Vocabulary.get().weightLabel}: ${weightKg ?: "—"} ${Vocabulary.get().kg}",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
@@ -91,18 +94,18 @@ fun ProfileSetupTab(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Activity & Goal",
+                    text = Vocabulary.get().activityAndGoal,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "• Activity: ${formatActivityLevel(activityLevel)}",
+                    text = "• ${Vocabulary.get().activityLabel}: ${formatActivityLevel(activityLevel)}",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "• Goal: ${formatGoal(goal)}",
+                    text = "• ${Vocabulary.get().goalLabel}: ${formatGoal(goal)}",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
@@ -111,21 +114,24 @@ fun ProfileSetupTab(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Recommended daily calories: $recommendedCalories kcal",
+                text = String.format(
+                    Vocabulary.get().recommendedDailyCalories,
+                    recommendedCalories
+                ),
                 color = Purple80,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "⚠️ Disclaimer: These are only recommendations. Consult a healthcare professional before making significant dietary changes.",
+                text = Vocabulary.get().disclaimerText,
                 color = Color.LightGray,
                 fontSize = 12.sp
             )
         } else {
             // No profile – show setup prompt
             Text(
-                text = "No profile data found. Click below to set up your age, sex, height, weight, goals and activity level.",
+                text = Vocabulary.get().noProfileDataFound,
                 color = Color.White.copy(alpha = 0.7f),
                 fontSize = 14.sp
             )
@@ -136,29 +142,29 @@ fun ProfileSetupTab(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         ) {
-            Text(if (hasProfile) "Update profile" else "Set up profile")
+            Text(if (hasProfile) Vocabulary.get().updateProfile else Vocabulary.get().setupProfile)
         }
     }
 }
 
 private fun formatActivityLevel(level: String?): String {
     return when (level) {
-        "SEDENTARY" -> "Sedentary (little or no exercise)"
-        "LIGHT" -> "Light exercise (1-3 days/week)"
-        "MODERATE" -> "Moderate exercise (3-5 days/week)"
-        "ACTIVE" -> "Active (6-7 days/week)"
-        "VERY_ACTIVE" -> "Very active (hard daily exercise)"
+        "SEDENTARY" -> Vocabulary.get().sedentary
+        "LIGHT" -> Vocabulary.get().lightExercise
+        "MODERATE" -> Vocabulary.get().moderateExercise
+        "ACTIVE" -> Vocabulary.get().active
+        "VERY_ACTIVE" -> Vocabulary.get().veryActive
         else -> level ?: "—"
     }
 }
 
 private fun formatGoal(goal: String?): String {
     return when (goal) {
-        "EXTREME_LOSS" -> "Extreme weight loss (1000 kcal deficit)"
-        "MODERATE_LOSS" -> "Moderate weight loss (500 kcal deficit)"
-        "MAINTAIN" -> "Maintain weight"
-        "MODERATE_GAIN" -> "Moderate weight gain (500 kcal surplus)"
-        "EXTREME_GAIN" -> "Extreme weight gain (1000 kcal surplus)"
+        "EXTREME_LOSS" -> Vocabulary.get().extremeLoss
+        "MODERATE_LOSS" -> Vocabulary.get().moderateLoss
+        "MAINTAIN" -> Vocabulary.get().maintain
+        "MODERATE_GAIN" -> Vocabulary.get().moderateGain
+        "EXTREME_GAIN" -> Vocabulary.get().extremeGain
         else -> goal ?: "—"
     }
 }

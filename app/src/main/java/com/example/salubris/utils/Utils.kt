@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.salubris.database.entities.Macro
 import com.example.salubris.database.entities.Product
 import kotlinx.serialization.Serializable
 import java.time.Instant
@@ -57,21 +56,26 @@ fun ProductNutritionLabel(product: Product) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Nutrition per 100g", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(
+            Vocabulary.get().nutritionPer100g,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Calories", color = Color.White)
+            Text(Vocabulary.get().calories, color = Color.White)
             Text("${product.calories}", color = Color.White, fontWeight = FontWeight.Bold)
         }
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Protein", color = Color.White)
+            Text(Vocabulary.get().protein, color = Color.White)
             Text("${product.protein} g", color = Color.White, fontWeight = FontWeight.Bold)
         }
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Carbs", color = Color.White)
+            Text(Vocabulary.get().carbs, color = Color.White)
             Text("${product.carbs} g", color = Color.White, fontWeight = FontWeight.Bold)
         }
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Fats", color = Color.White)
+            Text(Vocabulary.get().fats, color = Color.White)
             Text("${product.fats} g", color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
@@ -86,10 +90,10 @@ fun Any?.toFloatSafe(): Float {
             .replace(",", ".") // EU format support
             .trim()
             .toFloatOrNull() ?: 0f
+
         else -> 0f
     }
 }
-
 
 enum class Sex { MALE, FEMALE }
 enum class Goal { LOSE, MAINTAIN, GAIN }
@@ -103,7 +107,6 @@ enum class ActivityLevel(val factor: Double) {
 
 object CalorieCalculator {
     // Mifflin-St Jeor formula
-    // Add to CalorieCalculator.kt or a separate file
     enum class GoalOption(val displayName: String, val calorieAdjustment: Int) {
         EXTREME_LOSS("Extreme weight loss (1000 kcal deficit)", -1000),
         MODERATE_LOSS("Moderate weight loss (500 kcal deficit)", -500),
@@ -128,3 +131,9 @@ object CalorieCalculator {
         return (tdee + adjustment).toInt()
     }
 }
+
+@Serializable
+data class ExtractedFoodItem(
+    val name: String,
+    val grams: Double? = null  // null = ask for quantity
+)

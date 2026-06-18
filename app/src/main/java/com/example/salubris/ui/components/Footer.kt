@@ -3,14 +3,44 @@ package com.example.salubris.ui.components
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,7 +53,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.salubris.ui.theme.*
+import com.example.salubris.ui.theme.ContainerBackground
+import com.example.salubris.ui.theme.MainContainerBorder
+import com.example.salubris.ui.theme.cancelColor
+import com.example.salubris.ui.theme.productColor
+import com.example.salubris.utils.Vocabulary
+
+// -------- Star toggle composable --------
+@Composable
+private fun StarToggle(checked: Boolean, enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    Icon(
+        imageVector = if (checked) Icons.Default.Star else Icons.Default.StarBorder,
+        contentDescription = if (checked) Vocabulary.get().selected else Vocabulary.get().notSelected,
+        tint = when {
+            !enabled -> Color.Gray
+            checked -> productColor
+            else -> Color.LightGray
+        },
+        modifier = Modifier
+            .size(28.dp)
+            .clickable(enabled = enabled) { onToggle(!checked) }
+    )
+}
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -47,15 +98,27 @@ fun Footer(
     }
 
     fun togglePage(page: String, add: Boolean) {
+        if (add && tempFavorites.size >= 4) return
         val newList = if (add) {
-            if (tempFavorites.size < 4) tempFavorites + page else tempFavorites
+            tempFavorites + page
         } else {
-            if (tempFavorites.size > 1) tempFavorites - page else tempFavorites
+            tempFavorites - page
         }
         if (newList != tempFavorites) {
             val sortedList = newList.sortedBy { allPages.indexOf(it) }
             tempFavorites = sortedList
             onUpdateFavorites(sortedList)
+        }
+    }
+
+    fun getDisplayName(page: String): String {
+        return when (page) {
+            "Home" -> Vocabulary.get().home
+            "Tracking" -> Vocabulary.get().tracking
+            "Products" -> Vocabulary.get().productsNav
+            "Meals" -> Vocabulary.get().mealsNav
+            "Settings" -> Vocabulary.get().settingsNav
+            else -> page
         }
     }
 
@@ -65,6 +128,7 @@ fun Footer(
             .padding(10.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
+        // Footer bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,7 +141,7 @@ fun Footer(
             repeat(2) { index ->
                 if (index < favorites.size) {
                     FooterNavItem(
-                        label = favorites[index],
+                        label = getDisplayName(favorites[index]),
                         icon = getIconForPage(favorites[index]),
                         isSelected = currentPage == favorites[index],
                         showLabel = showLabels,
@@ -94,7 +158,7 @@ fun Footer(
             for (index in 2 until 4) {
                 if (index < favorites.size) {
                     FooterNavItem(
-                        label = favorites[index],
+                        label = getDisplayName(favorites[index]),
                         icon = getIconForPage(favorites[index]),
                         isSelected = currentPage == favorites[index],
                         showLabel = showLabels,
@@ -107,19 +171,21 @@ fun Footer(
             }
         }
 
+        // Centre circular cutout (background for FAB)
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-14).dp)   // was -6.dp
+                .offset(y = (-14).dp)
                 .size(90.dp)
                 .clip(CircleShape)
                 .background(ContainerBackground)
         )
 
+        // FAB
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 2.dp)       // was 8.dp
+                .offset(y = 2.dp)
                 .size(64.dp)
                 .shadow(8.dp, CircleShape)
                 .clip(CircleShape)
@@ -129,14 +195,14 @@ fun Footer(
         ) {
             Icon(
                 Icons.Default.Menu,
-                "Menu",
+                Vocabulary.get().menu,
                 tint = Color.White,
                 modifier = Modifier.size(36.dp)
             )
         }
     }
 
-    // Customisation dialog (near full‑screen)
+    // Compact popup menu anchored near the FAB
     if (showModal) {
         Dialog(
             onDismissRequest = { showModal = false },
@@ -145,88 +211,137 @@ fun Footer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f))
+                    .background(Color.Black.copy(alpha = 0.5f))
                     .clickable { showModal = false },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.BottomCenter
             ) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth(0.95f)
-                        .fillMaxHeight(0.9f),
+                        .wrapContentHeight()
+                        .padding(bottom = 80.dp)
+                        .clickable(enabled = false) {},
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))
+                    colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "Customize Footer",
+                            Vocabulary.get().customizeFooter,
                             color = Color.White,
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
 
+                        // --- Pages section with star toggles ---
                         Text(
-                            "Pages",
+                            Vocabulary.get().pages,
                             color = Color.LightGray,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(top = 8.dp)
+                            fontSize = 14.sp
                         )
+
+                        if (tempFavorites.size >= 4) {
+                            Text(
+                                Vocabulary.get().maximumPagesSelected,
+                                color = Color(0xFFFF9800),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
                         allPages.forEach { page ->
                             val isChecked = tempFavorites.contains(page)
+                            val canToggle = isChecked || tempFavorites.size < 4
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp),
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(alpha = 0.03f))
+                                    .clickable {
+                                        onItemSelected(page)
+                                        showModal = false
+                                    },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { togglePage(page, it) }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                StarToggle(checked = isChecked, enabled = canToggle) {
+                                    togglePage(page, it)
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Icon(
                                     getIconForPage(page),
-                                    page,
+                                    contentDescription = getDisplayName(page),
                                     tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(page, color = Color.White)
+                                Text(getDisplayName(page), color = Color.White, fontSize = 16.sp)
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
 
+                        // --- Quick Actions section ---
                         Text(
-                            "Quick Actions",
+                            Vocabulary.get().quickActions,
                             color = Color.LightGray,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            fontSize = 14.sp
                         )
-                        // AI Chat button – opens full‑screen chat
-                        Button(
-                            onClick = {
-                                showModal = false
-                                onOpenChat()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = productColor)
+                        // AI Chat action
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .clickable {
+                                    showModal = false
+                                    onOpenChat()
+                                },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Chat, "Chat", tint = Color.White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("AI Assistant", color = Color.White)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Icon(
+                                Icons.Default.Chat,
+                                contentDescription = Vocabulary.get().aiAssistant,
+                                tint = productColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                Vocabulary.get().aiAssistant,
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { showModal = false },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = submitColor)
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Close action
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .clickable { showModal = false },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Close", color = Color.White)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = Vocabulary.get().close,
+                                tint = cancelColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(Vocabulary.get().close, color = Color.White, fontSize = 16.sp)
                         }
                     }
                 }

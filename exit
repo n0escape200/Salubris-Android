@@ -1,0 +1,336 @@
+[33mcommit 3cb53099ddd1b75b783659c8884faebd91285c1a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Merge: a0d12af 55ec922
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Jun 12 10:46:59 2026 +0300
+
+    Merge origin/llm-latest, accepting all incoming changes
+
+[33mcommit 55ec9220191b024ebbd392ecf26c1fbc41c5b837[m[33m ([m[1;31morigin/llm-latest[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Jun 12 09:08:56 2026 +0300
+
+    clean up
+
+[33mcommit a06b960f2c3e738659587d3285a43a3e49ef448b[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Jun 12 08:45:18 2026 +0300
+
+    added AI chat + product changes
+
+[33mcommit a0d12af44439018a9838ad5fefe991961e2ee38e[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Jun 9 09:51:09 2026 +0300
+
+    working on llm chat
+
+[33mcommit 4d509d60088190cc411a1c487f9f3177286efe10[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Jun 9 00:37:54 2026 +0300
+
+    changed UI , used Dialog instead of Modal, implemented the goal traking
+
+[33mcommit 9fa3e7b468edb813e3a6a940a697ae70eba8d5fb[m[33m ([m[1;33mtag: [m[1;33m1.3.0[m[33m, [m[1;32mllm[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Jun 9 00:37:54 2026 +0300
+
+    changed UI , used Dialog instead of Modal, implemented the goal traking
+
+[33mcommit 2a17399d7607b9ce83048e28b6aab54cada59aad[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Jun 7 20:40:16 2026 +0300
+
+    wokting on db
+
+[33mcommit 9d570869c7375bad0c1065dd9861ba4a6e5e64df[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Jun 7 20:40:16 2026 +0300
+
+    wokting on db
+
+[33mcommit 25b6fed5fd58f64728c682df5a354634adc9aab0[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Jun 7 10:52:59 2026 +0300
+
+    started working on database changes
+
+[33mcommit 89213a35859e337966925edd9758e3f038882406[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Jun 7 10:52:59 2026 +0300
+
+    started working on database changes
+
+[33mcommit d8401f162753932e46b69c2c979ca8ffe5ad8322[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu May 7 00:26:09 2026 +0300
+
+    potential fix for new FilterableDropdown
+
+[33mcommit 2b7b947512333dea0915e2c79e47c48af7ae57af[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu May 7 00:26:09 2026 +0300
+
+    potential fix for new FilterableDropdown
+
+[33mcommit cfd804e49b496c931ffeac45b5c0aa84747627e2[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu May 7 00:15:53 2026 +0300
+
+    new dropdown component + fixed issue on product Modal add
+
+[33mcommit 0091fd6726ff4f66ad267165435b1235bd0d93b4[m[33m ([m[1;33mtag: [m[1;33mv1.2.1[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu May 7 00:15:53 2026 +0300
+
+    new dropdown component + fixed issue on product Modal add
+
+[33mcommit e060a48468f1b70c2866d932bbc822260bf0eef8[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Apr 19 03:31:11 2026 +0300
+
+    added the meal functionality
+
+[33mcommit bef233154e370cefee99cf974388097f4a20b918[m[33m ([m[1;33mtag: [m[1;33mV1.2.0[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Apr 19 03:31:11 2026 +0300
+
+    added the meal functionality
+
+[33mcommit 3b7eab82690f2c178221e12ffc0a43fc663b63a8[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Apr 18 02:09:37 2026 +0300
+
+    added the water tracker
+
+[33mcommit 30bc42534cd416109fde169fa38431a162e96c4b[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Apr 18 02:09:37 2026 +0300
+
+    added the water tracker
+
+[33mcommit cb32c7281ad54d3fea7c722c7a590203512ca0dc[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Apr 14 01:18:19 2026 +0300
+
+    added the step traking
+
+[33mcommit 0a1e67f4436208485c3b70291e42333c9d18a75d[m[33m ([m[1;33mtag: [m[1;33mV1.1.0[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Apr 14 01:18:19 2026 +0300
+
+    added the step traking
+
+[33mcommit d5c04d99d22b140733a628d176344e4e3086b5c1[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Mar 24 23:59:08 2026 +0200
+
+    finished the product import and working on the Home page
+
+[33mcommit 1e25141da411fbe4976c88635c2f123c45f5f1df[m[33m ([m[1;33mtag: [m[1;33mrelease[m[33m)[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Mar 24 23:59:08 2026 +0200
+
+    finished the product import and working on the Home page
+
+[33mcommit d5232ae96f3a921778eca43853f05a6e5b3c21a1[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Mon Mar 23 23:06:53 2026 +0200
+
+    worked on the track lines and implemented the bar code scanner
+
+[33mcommit 132f664dbc0f0e083d261d2cf944963c8684b1d4[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Mon Mar 23 23:06:53 2026 +0200
+
+    worked on the track lines and implemented the bar code scanner
+
+[33mcommit 4a0af3885d90374d50f5403c74d10c3d0fae7777[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Mar 22 18:32:45 2026 +0200
+
+    work on trackline
+
+[33mcommit 07b1fbbf6bbbc2f90929354bb1bfd1007098a887[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Mar 22 18:32:45 2026 +0200
+
+    work on trackline
+
+[33mcommit e135dfdd609b2d4291bc278a2fab8d2eacb77e79[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Mar 21 02:41:51 2026 +0200
+
+    working on the track lines
+
+[33mcommit aa8b615e52f90a6aa66c37daf4c3518a5a3bbed9[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Mar 21 02:41:51 2026 +0200
+
+    working on the track lines
+
+[33mcommit d346697794206db808599365d8889983947230e8[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu Mar 19 23:27:22 2026 +0200
+
+    working on products
+
+[33mcommit 4b6ddb031ddf9411a34ef8adea42ebb3a971c234[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu Mar 19 23:27:22 2026 +0200
+
+    working on products
+
+[33mcommit 29648a616a111e81f75137df3e7eae8fd847bdba[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Mar 10 19:22:40 2026 +0200
+
+    changes
+
+[33mcommit e4814b60c14a33c3efba01f7807b0c2dc4c560f7[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Mar 10 19:22:40 2026 +0200
+
+    changes
+
+[33mcommit 3239531cf9225bcaf240d1dd8ec9c8b926ec8632[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Feb 22 01:46:23 2026 +0200
+
+    working on the macro lines
+
+[33mcommit 38e1e0c379726fcab014335b8b12768eaafd47b9[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sun Feb 22 01:46:23 2026 +0200
+
+    working on the macro lines
+
+[33mcommit e9704e30aaf3273ad391e204ec2a03d82c8e4c4f[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Feb 21 16:25:27 2026 +0200
+
+    working on the DB implementation
+
+[33mcommit fdc207af5af14b53552d888c5bf2935db6b5876d[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Sat Feb 21 16:25:27 2026 +0200
+
+    working on the DB implementation
+
+[33mcommit 9a5eec204cf8d277f811d2dbe6af51409ab4b877[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Feb 20 08:39:45 2026 +0200
+
+    working on the database logic
+
+[33mcommit 91adfb1e1c6222e8a400cbe84eb835bfb2dc96b5[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Feb 20 08:39:45 2026 +0200
+
+    working on the database logic
+
+[33mcommit f7986ef01de87067333ec1460fb87ff88b711332[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 18 00:07:37 2026 +0200
+
+    finished the Form logic, for now; started working on the database
+
+[33mcommit d2691262af5c6860da03f5351a5a78d34b77fd01[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 18 00:07:37 2026 +0200
+
+    finished the Form logic, for now; started working on the database
+
+[33mcommit 7c5b8a4020ce935fc07a106d4a3c19792e57f341[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Mon Feb 16 21:33:54 2026 +0200
+
+    working on input form
+
+[33mcommit 89de643d7bdad3ce7c07c473bd1aac00d98ae950[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Mon Feb 16 21:33:54 2026 +0200
+
+    working on input form
+
+[33mcommit 87a3deb50ee49d66972c53e27c118e58f7f5fb2c[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Feb 13 00:55:40 2026 +0200
+
+    created the modal and working on the Products page
+
+[33mcommit 11e8aca37a5248e88f02ec83cf4bd7e82363975a[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Fri Feb 13 00:55:40 2026 +0200
+
+    created the modal and working on the Products page
+
+[33mcommit a8c7071158070365a003dc582a33fba4f9fd6a3d[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu Feb 12 00:06:51 2026 +0200
+
+    working on macro page
+
+[33mcommit f449f881d45fc1065a5be55e3335cde3bd1804e3[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Thu Feb 12 00:06:51 2026 +0200
+
+    working on macro page
+
+[33mcommit 3e72a5a65291cbe17f7ec54d755e53cc0846c2d3[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 11 21:32:33 2026 +0200
+
+    working on the tracking page
+
+[33mcommit 1744c7e2438d4c1d184b979f54db33018712262c[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 11 21:32:33 2026 +0200
+
+    working on the tracking page
+
+[33mcommit 4caa858290a4e3f3bd12a895f72d4bdcb29c392d[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 11 01:38:27 2026 +0200
+
+    working on the tracking page
+
+[33mcommit 380102cea16acad9cca4854b48d06fce4dfcc1b2[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Wed Feb 11 01:38:27 2026 +0200
+
+    working on the tracking page
+
+[33mcommit ed5bf6d47540df3ecd776f4ef9a63c5f80afd973[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Feb 10 18:20:52 2026 +0200
+
+    worked on the home page
+
+[33mcommit 9be7a489f0ab31aea8ec562d4b7d3b0a67936704[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Feb 10 18:20:52 2026 +0200
+
+    worked on the home page
+
+[33mcommit e5211d67bfda50ffd777960f68b2f9c20f613919[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Feb 10 01:02:24 2026 +0200
+
+    added project
+
+[33mcommit 66f2d9cdc8cdedfca0fb4b6e0f419dfd57043fcd[m
+Author: n0escape200 <n0_escape200@yahoo.com>
+Date:   Tue Feb 10 01:02:24 2026 +0200
+
+    added project
+
+[33mcommit 28162275aec118c0713f9e80b960c147e705f1f0[m
+Author: Tecleanu Ionut (aka John) <62956097+n0escape200@users.noreply.github.com>
+Date:   Tue Feb 10 00:59:23 2026 +0200
+
+    Initial commit
+
+[33mcommit e03694b9436d7fefc727acf6ded878c02a0182ab[m
+Author: Tecleanu Ionut (aka John) <62956097+n0escape200@users.noreply.github.com>
+Date:   Tue Feb 10 00:59:23 2026 +0200
+
+    Initial commit
