@@ -6,42 +6,35 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.salubris.database.entities.Setting
+import com.example.salubris.database.entities.SettingEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SettingDao {
 
-    // CREATE
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(setting: Setting)
+    suspend fun insert(setting: SettingEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(settings: List<Setting>)
+    suspend fun insertAll(settings: List<SettingEntity>)
 
-    // READ ALL - Fixed: now queries from settings table
     @Query("SELECT * FROM settings ORDER BY name ASC")
-    fun getAllSettings(): Flow<List<Setting>>
+    fun getAllSettings(): Flow<List<SettingEntity>>
 
-    // READ by name
     @Query("SELECT * FROM settings WHERE name = :name")
-    suspend fun getSettingByName(name: String): Setting?
+    suspend fun getSettingByName(name: String): SettingEntity?
 
-    // READ by id as Flow
     @Query("SELECT * FROM settings WHERE uid = :id")
-    fun getSettingByIdFlow(id: Int): Flow<Setting?>
+    fun getSettingByIdFlow(id: Int): Flow<SettingEntity?>
 
-    // READ by id as suspend
     @Query("SELECT * FROM settings WHERE uid = :id")
-    suspend fun getSettingById(id: Int): Setting?
+    suspend fun getSettingById(id: Int): SettingEntity?
 
-    // UPDATE
     @Update
-    suspend fun update(setting: Setting)
+    suspend fun update(setting: SettingEntity)
 
-    // DELETE
     @Delete
-    suspend fun delete(setting: Setting)
+    suspend fun delete(setting: SettingEntity)
 
     @Query("DELETE FROM settings")
     suspend fun deleteAll()

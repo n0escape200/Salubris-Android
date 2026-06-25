@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.ui.theme.ContainerBackground
 import com.example.salubris.ui.theme.caloriesColor
@@ -97,9 +97,6 @@ data class FetchedProduct(
     val code: String
 )
 
-// ============================================================
-// RELIABLE INTERNET CHECK (suspend, performs actual HTTP request)
-// ============================================================
 suspend fun isInternetAvailable(): Boolean {
     return withContext(Dispatchers.IO) {
         try {
@@ -128,10 +125,10 @@ fun Products() {
     var showApiErrorSnackbar by remember { mutableStateOf(false) }
 
     var showDuplicateDialog by remember { mutableStateOf(false) }
-    var duplicateProduct by remember { mutableStateOf<Product?>(null) }
+    var duplicateProduct by remember { mutableStateOf<ProductEntity?>(null) }
 
     var isFormOpen by remember { mutableStateOf(false) }
-    var editingProduct by remember { mutableStateOf<Product?>(null) }
+    var editingProduct by remember { mutableStateOf<ProductEntity?>(null) }
     var prefilledData by remember { mutableStateOf<FetchedProduct?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -152,14 +149,12 @@ fun Products() {
 
     LaunchedEffect(scannedBarcode) {
         if (scannedBarcode != null && isScanning) {
-            // 1. Validate barcode
             if (scannedBarcode.isNullOrBlank()) {
                 isScanning = false
                 scannedBarcode = null
                 return@LaunchedEffect
             }
 
-            // 2. Duplicate check
             val existing = products.firstOrNull { it.code == scannedBarcode }
             if (existing != null) {
                 duplicateProduct = existing
@@ -169,7 +164,6 @@ fun Products() {
                 return@LaunchedEffect
             }
 
-            // 3. Check internet
             val hasInternet = isInternetAvailable()
             if (!hasInternet) {
                 showNoInternetSnackbar = true
@@ -178,11 +172,9 @@ fun Products() {
                 return@LaunchedEffect
             }
 
-            // 4. Start lookup
             isLookingUpProduct = true
             scope.launch {
                 try {
-                    // Force network operations to IO dispatcher
                     val jsonString = withContext(Dispatchers.IO) {
                         val request = Request.Builder()
                             .url("https://world.openfoodfacts.org/api/v2/product/$scannedBarcode")
@@ -198,12 +190,10 @@ fun Products() {
                     if (jsonString.isBlank()) {
                         throw Exception("Empty response body")
                     }
-                    Log.d("Products", "API response: $jsonString")
 
                     val parsedResponse = Json { ignoreUnknownKeys = true }
                         .decodeFromString<OpenFoodFactsResponse>(jsonString)
 
-                    // Check the status field: 0 = product not found, 1 = found
                     if (parsedResponse.status == 0) {
                         showNotFoundSnackbar = true
                         isLookingUpProduct = false
@@ -233,30 +223,6 @@ fun Products() {
                     prefilledData = fetched
                     editingProduct = null
                     isFormOpen = true
-                    isLookingUpProduct = false
-                    isScanning = false
-                    scannedBarcode = null
-                } catch (e: UnknownHostException) {
-                    Log.e("Products", "UnknownHostException: ${e.message}")
-                    showNoInternetSnackbar = true
-                    isLookingUpProduct = false
-                    isScanning = false
-                    scannedBarcode = null
-                } catch (e: SocketTimeoutException) {
-                    Log.e("Products", "SocketTimeoutException: ${e.message}")
-                    showNoInternetSnackbar = true
-                    isLookingUpProduct = false
-                    isScanning = false
-                    scannedBarcode = null
-                } catch (e: IOException) {
-                    Log.e("Products", "IOException: ${e.message}", e)
-                    showNoInternetSnackbar = true
-                    isLookingUpProduct = false
-                    isScanning = false
-                    scannedBarcode = null
-                } catch (e: SSLException) {
-                    Log.e("Products", "SSLException: ${e.message}", e)
-                    showNoInternetSnackbar = true
                     isLookingUpProduct = false
                     isScanning = false
                     scannedBarcode = null
@@ -438,9 +404,6 @@ fun Products() {
             }
         }
 
-        // ============================================================
-        // Snackbars
-        // ============================================================
         if (showNoInternetSnackbar) {
             Snackbar(
                 modifier = Modifier.padding(16.dp),
@@ -494,9 +457,6 @@ fun Products() {
             LaunchedEffect(Unit) { kotlinx.coroutines.delay(3000); showApiErrorSnackbar = false }
         }
 
-        // ============================================================
-        // Duplicate product dialog
-        // ============================================================
         if (showDuplicateDialog && duplicateProduct != null) {
             Dialog(
                 onDismissRequest = { showDuplicateDialog = false },
@@ -569,9 +529,6 @@ fun Products() {
             }
         }
 
-        // ============================================================
-        // Add/Edit product form – redesigned for clarity and equal sizing
-        // ============================================================
         if (isFormOpen) {
             var name by remember { mutableStateOf("") }
             var calories by remember { mutableStateOf("") }
@@ -634,7 +591,6 @@ fun Products() {
                                 .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            // Header
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -655,7 +611,6 @@ fun Products() {
                                 }
                             }
 
-                            // Data source note (if prefilled)
                             if (prefilledData != null) {
                                 Column(
                                     modifier = Modifier
@@ -681,7 +636,6 @@ fun Products() {
                                 }
                             }
 
-                            // Product name
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it },
@@ -696,7 +650,6 @@ fun Products() {
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // "per 100g" note
                             Text(
                                 Vocabulary.get().nutritionalValuesPer100g,
                                 color = Color.White.copy(alpha = 0.6f),
@@ -706,7 +659,6 @@ fun Products() {
                                 textAlign = TextAlign.Center
                             )
 
-                            // Macro fields – 2 columns with equal weight
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -824,7 +776,6 @@ fun Products() {
                                 }
                             }
 
-                            // Barcode (optional)
                             OutlinedTextField(
                                 value = code,
                                 onValueChange = { code = it },
@@ -844,7 +795,6 @@ fun Products() {
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Save button
                             Button(
                                 onClick = {
                                     scope.launch {
@@ -861,7 +811,7 @@ fun Products() {
                                             )
                                         } else {
                                             repository.insertProduct(
-                                                Product(
+                                                ProductEntity(
                                                     name = name,
                                                     calories = calories.toFloatSafe(),
                                                     protein = protein.toFloatSafe(),
@@ -891,9 +841,6 @@ fun Products() {
             }
         }
 
-        // ============================================================
-        // Barcode scanner modal
-        // ============================================================
         if (isScanning) {
             Dialog(
                 onDismissRequest = { isScanning = false; scannedBarcode = null },
@@ -932,12 +879,9 @@ fun Products() {
     }
 }
 
-// ============================================================
-// Open Food Facts response models
-// ============================================================
 @Serializable
 data class OpenFoodFactsResponse(
-    val status: Int = 1,          // 0 = not found, 1 = found
+    val status: Int = 1,
     val product: ProductData? = null
 )
 

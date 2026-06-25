@@ -3,69 +3,24 @@ package com.example.salubris.database.DAO
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
-import com.example.salubris.database.entities.Meal
-import com.example.salubris.database.entities.MealProductCrossRef
-import com.example.salubris.database.entities.MealWithProducts
-import com.example.salubris.database.entities.Product
-import com.example.salubris.database.relations.ProductWithQuantity
+import androidx.room.Update   // ✅ add this import
+import com.example.salubris.database.entities.MealEntity
 
 @Dao
 interface MealDao {
-
     @Insert
-    suspend fun insertMeal(meal: Meal): Long
+    suspend fun insertMeal(meal: MealEntity): Long
 
-    @Insert
-    suspend fun insertCrossRef(crossRef: MealProductCrossRef)
+    @Update
+    suspend fun updateMeal(meal: MealEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllCrossRefs(crossRefs: List<MealProductCrossRef>)
+    @Query("SELECT * FROM meals ORDER BY uid DESC")
+    suspend fun getAllMeals(): List<MealEntity>
 
-    @Query("SELECT * FROM Meal ORDER BY uid DESC")
-    suspend fun getAllMeals(): List<Meal>
-
-    @Query("SELECT * FROM Meal WHERE uid = :mealId")
-    suspend fun getMeal(mealId: Int): Meal?
-
-    @Query("""
-        SELECT 
-            Product.*, 
-            MealProductCrossRef.quantity 
-        FROM Product 
-        INNER JOIN MealProductCrossRef ON Product.uid = MealProductCrossRef.productId 
-        WHERE MealProductCrossRef.mealId = :mealId
-    """)
-    suspend fun getProductsWithQuantityForMeal(mealId: Int): List<ProductWithQuantity>
-
-    @Transaction
-    suspend fun getAllMealsWithProducts(): List<MealWithProducts> {
-        val meals = getAllMeals()
-        return meals.map { meal ->
-            MealWithProducts(
-                meal = meal,
-                products = getProductsWithQuantityForMeal(meal.uid)
-            )
-        }
-    }
-
-    @Transaction
-    suspend fun getMealWithProducts(mealId: Int): MealWithProducts? {
-        val meal = getMeal(mealId) ?: return null
-        return MealWithProducts(
-            meal = meal,
-            products = getProductsWithQuantityForMeal(mealId)
-        )
-    }
+    @Query("SELECT * FROM meals WHERE uid = :mealId")
+    suspend fun getMealById(mealId: Int): MealEntity?
 
     @Delete
-    suspend fun deleteMeal(meal: Meal)
-
-    @Query("DELETE FROM MealProductCrossRef WHERE mealId = :mealId")
-    suspend fun deleteCrossRefsForMeal(mealId: Int)
-
-    @Query("SELECT * FROM Product ORDER BY name")
-    suspend fun getAllProducts(): List<Product>
+    suspend fun deleteMeal(meal: MealEntity)
 }

@@ -38,7 +38,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.arm.aichat.InferenceEngine
 import com.arm.aichat.InferenceEngine.State
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import com.example.salubris.database.repositories.ProductRepository
 import com.example.salubris.nutrition.*
 import com.example.salubris.ui.theme.*
@@ -583,7 +583,7 @@ private fun ChatContent(
 private fun ProductFormDialog(
     nutritionData: FoodNutritionData,
     onDismiss: () -> Unit,
-    onSave: (Product) -> Unit
+    onSave: (ProductEntity) -> Unit
 ) {
     var name by remember { mutableStateOf(nutritionData.name) }
     var calories by remember { mutableStateOf(nutritionData.calories.toString()) }
@@ -722,7 +722,7 @@ private fun ProductFormDialog(
 
                     Button(
                         onClick = {
-                            val product = Product(
+                            val product = ProductEntity(
                                 name = name,
                                 calories = calories.toFloatSafe(),
                                 protein = protein.toFloatSafe(),

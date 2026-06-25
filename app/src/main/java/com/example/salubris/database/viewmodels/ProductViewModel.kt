@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import com.example.salubris.database.repositories.ProductRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,14 +16,15 @@ class ProductViewModel(
     private val repository: ProductRepository
 ) : ViewModel() {
 
-    val products: StateFlow<List<Product>> =
+    val products: StateFlow<List<ProductEntity>> =
         repository.getAllProducts()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
-    fun addProduct(product: Product) {
+
+    fun addProduct(product: ProductEntity) {
         viewModelScope.launch {
             repository.insertProduct(product)
         }

@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.DailyWaterHistory
-import com.example.salubris.database.entities.WaterEntry
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
+import com.example.salubris.database.entities.WaterEntity
 import com.example.salubris.database.repositories.WaterRepository
 import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +28,8 @@ class WaterViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _todayEntries = MutableStateFlow<List<WaterEntry>>(emptyList())
-    val todayEntries: StateFlow<List<WaterEntry>> = _todayEntries.asStateFlow()
+    private val _todayEntries = MutableStateFlow<List<WaterEntity>>(emptyList())
+    val todayEntries: StateFlow<List<WaterEntity>> = _todayEntries.asStateFlow()
 
     private val _todayTotal = MutableStateFlow(0)
     val todayTotal: StateFlow<Int> = _todayTotal.asStateFlow()
@@ -56,8 +56,8 @@ class WaterViewModel(
         }
     }
 
-    private val _history = MutableStateFlow<List<DailyWaterHistory>>(emptyList())
-    val history: StateFlow<List<DailyWaterHistory>> = _history.asStateFlow()
+    private val _history = MutableStateFlow<List<DailyWaterHistoryEntity>>(emptyList())
+    val history: StateFlow<List<DailyWaterHistoryEntity>> = _history.asStateFlow()
 
     fun loadHistory() {
         viewModelScope.launch {
@@ -84,7 +84,7 @@ class WaterViewModel(
         }
     }
 
-    fun deleteWaterEntry(entry: WaterEntry) {
+    fun deleteWaterEntry(entry: WaterEntity) {
         viewModelScope.launch {
             _isLoading.value = true
             _operationStatus.value = OperationStatus.Idle
@@ -101,9 +101,9 @@ class WaterViewModel(
         }
     }
 
-    fun archiveDay(date: String, totalMl: Int) {
+    fun archiveDay(date: String, totalMl: Int, goalMl: Int) {
         viewModelScope.launch {
-            repository.archiveDay(date, totalMl)
+            repository.archiveDay(date, totalMl, goalMl)
         }
     }
 }
@@ -118,7 +118,6 @@ class WaterViewModelFactory(private val repository: WaterRepository) : ViewModel
     }
 }
 
-// Optional: composable provider (if you want to use it in Water.kt)
 @Composable
 fun waterViewModelFactory(context: Context): WaterViewModelFactory {
     val database = AppDatabase.getDatabase(context)

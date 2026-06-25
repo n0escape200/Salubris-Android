@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.ZoneId
@@ -36,7 +36,7 @@ fun getStartOfDay(timestamp: Long): Long {
         .toEpochMilli()
 }
 
-fun calculateMacrosForProduct(product: Product, amountInGrams: Float): Map<String, Float> {
+fun calculateMacrosForProduct(product: ProductEntity, amountInGrams: Float): Map<String, Float> {
     val factor = amountInGrams / 100f
     return mapOf(
         "calories" to product.calories * factor,
@@ -47,7 +47,7 @@ fun calculateMacrosForProduct(product: Product, amountInGrams: Float): Map<Strin
 }
 
 @Composable
-fun ProductNutritionLabel(product: Product) {
+fun ProductNutritionLabel(product: ProductEntity) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

@@ -52,7 +52,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.entities.WaterEntry
+import com.example.salubris.database.entities.WaterEntity
 import com.example.salubris.database.viewmodels.SettingViewModel
 import com.example.salubris.database.viewmodels.WaterViewModel
 import com.example.salubris.database.viewmodels.settingsViewModelFactory
@@ -343,7 +343,10 @@ fun Water() {
                         ) {
                             Text(day.date, color = Color.White, fontSize = 14.sp)
                             Text(
-                                String.format(Vocabulary.get().mlValue, day.totalMl),
+                                String.format(
+                                    Vocabulary.get().mlValue,
+                                    day.consumedMl
+                                ),
                                 color = waterColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
@@ -487,7 +490,7 @@ fun CupButton(amount: Int, onClick: () -> Unit) {
 }
 
 @Composable
-fun HistoryItem(entry: WaterEntry, onDelete: () -> Unit) {
+fun HistoryItem(entry: WaterEntity, onDelete: () -> Unit) {   // ✅ changed type
     val timeString = java.text.SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale)
         .format(entry.timestamp)
 

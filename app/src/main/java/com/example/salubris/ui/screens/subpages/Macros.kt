@@ -62,9 +62,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.salubris.database.entities.MealWithProducts
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import com.example.salubris.database.viewmodels.MacroViewModel
+import com.example.salubris.database.viewmodels.MealUI
 import com.example.salubris.database.viewmodels.MealViewModel
 import com.example.salubris.database.viewmodels.ProductViewModel
 import com.example.salubris.database.viewmodels.SettingViewModel
@@ -86,7 +86,6 @@ import com.example.salubris.ui.theme.proteinColor
 import com.example.salubris.ui.theme.submitColor
 import com.example.salubris.utils.ProductNutritionLabel
 import com.example.salubris.utils.Vocabulary
-import com.example.salubris.utils.calculateMacrosForProduct
 import com.example.salubris.utils.truncate2Decimals
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -164,12 +163,10 @@ fun Macros(
                 "fats" to 0f
             )
             items.forEach { item ->
-                macros["calories"] =
-                    macros["calories"]!! + (item.calories * item.amountOrMultiplier / 100)
-                macros["protein"] =
-                    macros["protein"]!! + item.protein * item.amountOrMultiplier / 100
-                macros["carbs"] = macros["carbs"]!! + item.carbs * item.amountOrMultiplier / 100
-                macros["fats"] = macros["fats"]!! + item.fats * item.amountOrMultiplier / 100
+                macros["calories"] = macros["calories"]!! + item.calories
+                macros["protein"] = macros["protein"]!! + item.protein
+                macros["carbs"] = macros["carbs"]!! + item.carbs
+                macros["fats"] = macros["fats"]!! + item.fats
             }
             totalMacros = macros
         }
@@ -184,7 +181,10 @@ fun Macros(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = { openMeals = true },
+                    onClick = {
+                        mealViewModel.loadData()
+                        openMeals = true
+                    },
                     colors = ButtonDefaults.buttonColors(productColor),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(10.dp)
@@ -288,16 +288,25 @@ fun Macros(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Inside LazyColumn items block:
                     items(trackedItems) { item ->
                         Row(
                             modifier = Modifier
-                                .background(Color(60, 60, 60), shape = RoundedCornerShape(10.dp))
+                                .background(
+                                    if (item.isMeal) Color(0xFF1A3A3A) else Color(60, 60, 60),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
                                 .fillMaxWidth()
                                 .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (item.isMeal) "🍽️ " else "🥫 ",
+                                        fontSize = 16.sp
+                                    )
                                     Text(
                                         item.name,
                                         fontSize = 20.sp,
@@ -305,53 +314,46 @@ fun Macros(
                                         fontStyle = FontStyle.Italic,
                                         color = Color.White
                                     )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text(
-                                            (item.calories * (item.amountOrMultiplier / 100)).truncate2Decimals()
-                                                .toString(),
-                                            color = caloriesColor
-                                        )
-                                        Text(
-                                            (item.protein * (item.amountOrMultiplier / 100)).truncate2Decimals()
-                                                .toString(),
-                                            color = proteinColor
-                                        )
-                                        Text(
-                                            (item.carbs * (item.amountOrMultiplier / 100)).truncate2Decimals()
-                                                .toString(),
-                                            color = carbsColor
-                                        )
-                                        Text(
-                                            (item.fats * (item.amountOrMultiplier / 100)).truncate2Decimals()
-                                                .toString(),
-                                            color = fatsColor
-                                        )
-                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text(
-                                        text = if (item.type == "product") {
-                                            String.format(
-                                                Vocabulary.get().amountLabel,
-                                                item.amountOrMultiplier
-                                            )
-                                        } else {
-                                            String.format(
-                                                Vocabulary.get().quantityLabelMeal,
-                                                item.amountOrMultiplier
-                                            )
-                                        },
-                                        fontSize = 12.sp,
-                                        color = Color.White.copy(alpha = 0.6f)
+                                        item.calories.truncate2Decimals().toString(),
+                                        color = caloriesColor
+                                    )
+                                    Text(
+                                        item.protein.truncate2Decimals().toString(),
+                                        color = proteinColor
+                                    )
+                                    Text(
+                                        item.carbs.truncate2Decimals().toString(),
+                                        color = carbsColor
+                                    )
+                                    Text(
+                                        item.fats.truncate2Decimals().toString(),
+                                        color = fatsColor
+                                    )
+                                }
+                                Text(
+                                    text = String.format(
+                                        Vocabulary.get().amountLabel,
+                                        item.amountOrMultiplier
+                                    ),
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                                if (item.isMeal) {
+                                    Text(
+                                        text = Vocabulary.get().mealLabel,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF4DB8FF),
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        if (item.type == "product") {
-                                            macroViewModel.deleteMacroById(item.id)
-                                        } else {
-                                            macroViewModel.deleteTrackedMealById(item.id)
-                                        }
+                                        macroViewModel.deleteMacroById(item.id)
                                         reload = true
                                     }
                                 },
@@ -392,7 +394,7 @@ fun Macros(
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
                             .wrapContentHeight()
-                            .clickable { } // prevent dismiss when tapping inside
+                            .clickable { }
                             .background(Color(30, 30, 30), shape = RoundedCornerShape(24.dp)),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30)),
@@ -423,12 +425,13 @@ fun Macros(
                             }
                             ProductSelectionContent(
                                 onAdd = { product, amount ->
+                                    val safeAmount = amount / 100f
                                     macroViewModel.saveMacroLine(
                                         product.name,
-                                        product.calories,
-                                        product.protein,
-                                        product.carbs,
-                                        product.fats,
+                                        product.calories * safeAmount,
+                                        product.protein * safeAmount,
+                                        product.carbs * safeAmount,
+                                        product.fats * safeAmount,
                                         amount,
                                         System.currentTimeMillis()
                                     )
@@ -494,9 +497,9 @@ fun Macros(
                                 }
                             }
                             MealSelectionContent(
-                                meals = mealViewModel.mealsWithProducts.collectAsState().value,
+                                meals = mealViewModel.meals.collectAsState().value,
                                 onAdd = { mealId, quantityGrams ->
-                                    macroViewModel.saveMeal(
+                                    macroViewModel.saveTrackedMeal(
                                         mealId,
                                         quantityGrams,
                                         System.currentTimeMillis()
@@ -619,14 +622,14 @@ private fun GoalFeedbackPreview(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProductSelectionContent(
-    onAdd: (Product, Float) -> Unit,
+    onAdd: (ProductEntity, Float) -> Unit,
     productViewModel: ProductViewModel,
     settingViewModel: SettingViewModel,
     currentCalories: Float,
     goalCalories: Int,
     goalType: String
 ) {
-    var selectedProduct by remember { mutableStateOf<Product?>(null) }
+    var selectedProduct by remember { mutableStateOf<ProductEntity?>(null) }
     var amount by remember { mutableStateOf("") }
     var calories by remember { mutableFloatStateOf(0f) }
     var protein by remember { mutableFloatStateOf(0f) }
@@ -634,7 +637,6 @@ private fun ProductSelectionContent(
     var fats by remember { mutableFloatStateOf(0f) }
 
     val options by productViewModel.products.collectAsState()
-    val mainGoal = settingViewModel.getSettingByName("goal_main")
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         FilterableDropdown(
@@ -651,7 +653,7 @@ private fun ProductSelectionContent(
             ProductNutritionLabel(selectedProduct!!)
             Input(
                 label = String.format(Vocabulary.get().amountGrams, "")
-                    .trim(), // simpler: use existing key
+                    .trim(),
                 value = amount,
                 onChange = { value ->
                     amount = value
@@ -755,16 +757,15 @@ private fun ProductSelectionContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MealSelectionContent(
-    meals: List<MealWithProducts>,
+    meals: List<MealUI>,
     onAdd: (Int, Float) -> Unit,
     currentCalories: Float,
     goalCalories: Int,
     goalType: String
 ) {
-    var selectedMeal by remember { mutableStateOf<MealWithProducts?>(null) }
+    var selectedMeal by remember { mutableStateOf<MealUI?>(null) }
     var quantity by remember { mutableStateOf("") }
 
-    // Add state for multiplier
     var multiplier by remember { mutableStateOf(0f) }
 
     var previewCalories by remember { mutableFloatStateOf(0f) }
@@ -775,7 +776,7 @@ private fun MealSelectionContent(
     LaunchedEffect(selectedMeal, quantity) {
         if (selectedMeal != null && quantity.toFloatOrNull() != null) {
             val quantityGrams = quantity.toFloat()
-            val totalWeight = selectedMeal!!.products.sumOf { it.quantity.toDouble() }.toFloat()
+            val totalWeight = selectedMeal!!.components.sumOf { it.quantity.toDouble() }.toFloat()
             multiplier = if (totalWeight > 0) quantityGrams / totalWeight else 0f
 
             var totalCal = 0f
@@ -783,13 +784,12 @@ private fun MealSelectionContent(
             var totalCarb = 0f
             var totalFat = 0f
 
-            selectedMeal!!.products.forEach { productWithQty ->
-                val amount = productWithQty.quantity * multiplier
-                val macros = calculateMacrosForProduct(productWithQty.product, amount)
-                totalCal += macros["calories"] ?: 0f
-                totalProt += macros["protein"] ?: 0f
-                totalCarb += macros["carbs"] ?: 0f
-                totalFat += macros["fats"] ?: 0f
+            selectedMeal!!.components.forEach { comp ->
+                val factor = comp.quantity * multiplier / 100f
+                totalCal += comp.calories * factor
+                totalProt += comp.protein * factor
+                totalCarb += comp.carbs * factor
+                totalFat += comp.fats * factor
             }
             previewCalories = totalCal
             previewProtein = totalProt
@@ -819,9 +819,9 @@ private fun MealSelectionContent(
         if (selectedMeal != null) {
             Text(Vocabulary.get().mealContains, color = Color.White, fontWeight = FontWeight.Bold)
             Column(modifier = Modifier.padding(start = 8.dp)) {
-                selectedMeal!!.products.forEach { productWithQty ->
+                selectedMeal!!.components.forEach { comp ->
                     Text(
-                        "• ${productWithQty.product.name} (${productWithQty.quantity}g)",
+                        "• ${comp.productName} (${comp.quantity}g)",
                         color = Color.White.copy(alpha = 0.8f),
                         fontSize = 14.sp
                     )
@@ -829,7 +829,7 @@ private fun MealSelectionContent(
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            val totalWeight = selectedMeal!!.products.sumOf { it.quantity.toDouble() }.toFloat()
+            val totalWeight = selectedMeal!!.components.sumOf { it.quantity.toDouble() }.toFloat()
             Text(
                 String.format(Vocabulary.get().totalMealWeight, totalWeight.truncate2Decimals()),
                 color = Color.White,

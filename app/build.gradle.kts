@@ -63,6 +63,8 @@ dependencies {
     implementation(libs.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.benchmark.traceprocessor)
+    implementation(libs.compose.material3)
+    implementation(libs.androidx.foundation)
     val room_version = "2.8.4"
 
     implementation(libs.androidx.core.ktx)

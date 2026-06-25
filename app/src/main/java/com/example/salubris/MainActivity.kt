@@ -40,7 +40,7 @@ import androidx.work.*
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.DailyWaterHistory
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
 import com.example.salubris.database.repositories.*
 import com.example.salubris.database.viewmodels.SettingViewModel
 import com.example.salubris.database.viewmodels.settingsViewModelFactory
@@ -349,7 +349,7 @@ class MainActivity : ComponentActivity() {
                     "Water result for $dateStr: $waterResult (type: ${waterResult?.javaClass?.simpleName})"
                 )
                 val waterMl = when (waterResult) {
-                    is DailyWaterHistory -> waterResult.totalMl
+                    is DailyWaterHistoryEntity -> waterResult.consumedMl
                     is Int -> waterResult
                     else -> 0
                 }

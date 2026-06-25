@@ -6,40 +6,33 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.salubris.database.entities.Product
+import com.example.salubris.database.entities.ProductEntity
 import kotlinx.coroutines.flow.Flow
-
 
 @Dao
 interface ProductDao {
 
-    // CREATE
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(product: Product)
+    suspend fun insert(product: ProductEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(products: List<Product>)
+    suspend fun insertAll(products: List<ProductEntity>)
 
-    // READ ALL (Flow for live updates)
-    @Query("SELECT * FROM Product ORDER BY name ASC")
-    fun getProducts(): Flow<List<Product>>
+    @Query("SELECT * FROM products ORDER BY name ASC")
+    fun getProducts(): Flow<List<ProductEntity>>
 
-    // READ single item as Flow
-    @Query("SELECT * FROM Product WHERE uid = :id")
-    fun getProductByIdFlow(id: Int): Flow<Product?>
+    @Query("SELECT * FROM products WHERE uid = :id")
+    fun getProductByIdFlow(id: Int): Flow<ProductEntity?>
 
-    // READ single item as suspend
-    @Query("SELECT * FROM Product WHERE uid = :id")
-    suspend fun getProductById(id: Int): Product?
+    @Query("SELECT * FROM products WHERE uid = :id")
+    suspend fun getProductById(id: Int): ProductEntity?
 
-    // UPDATE
     @Update
-    suspend fun update(product: Product)
+    suspend fun update(product: ProductEntity)
 
-    // DELETE
     @Delete
-    suspend fun delete(product: Product)
+    suspend fun delete(product: ProductEntity)
 
-    @Query("DELETE FROM Product")
+    @Query("DELETE FROM products")
     suspend fun deleteAll()
 }

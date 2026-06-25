@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.entities.Setting
+import com.example.salubris.database.entities.SettingEntity
 import com.example.salubris.database.repositories.SettingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,19 +17,15 @@ class SettingViewModel(
     private val settingRepository: SettingRepository
 ) : ViewModel() {
 
-    // State for all settings
-    private val _settings = MutableStateFlow<List<Setting>>(emptyList())
-    val settings: StateFlow<List<Setting>> = _settings.asStateFlow()
+    private val _settings = MutableStateFlow<List<SettingEntity>>(emptyList())
+    val settings: StateFlow<List<SettingEntity>> = _settings.asStateFlow()
 
-    // State for loading status
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // State for error messages
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    // Operation status
     private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
     val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
 
@@ -43,7 +39,6 @@ class SettingViewModel(
         getAllSettings()
     }
 
-    // READ all settings as Flow
     fun getAllSettings() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -59,22 +54,18 @@ class SettingViewModel(
         }
     }
 
-    // READ single setting by name
-    fun getSettingByName(name: String): Setting? {
+    fun getSettingByName(name: String): SettingEntity? {
         return _settings.value.find { it.name == name }
     }
 
-    // READ setting value as string
     fun getSettingValue(name: String, defaultValue: String = ""): String {
         return getSettingByName(name)?.value ?: defaultValue
     }
 
-    // READ setting value as int
     fun getSettingValueAsInt(name: String, defaultValue: Int = 0): Int {
         return getSettingByName(name)?.value?.toIntOrNull() ?: defaultValue
     }
 
-    // CREATE or UPDATE setting
     fun saveSetting(name: String, value: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -85,7 +76,7 @@ class SettingViewModel(
                     val updatedSetting = existingSetting.copy(value = value)
                     settingRepository.updateSetting(updatedSetting)
                 } else {
-                    val newSetting = Setting(name = name, value = value)
+                    val newSetting = SettingEntity(name = name, value = value)
                     settingRepository.insertSetting(newSetting)
                 }
                 _operationStatus.value = OperationStatus.Success
@@ -98,7 +89,6 @@ class SettingViewModel(
         }
     }
 
-    // CREATE multiple settings
     fun saveSettings(settings: List<Pair<String, String>>) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -109,7 +99,7 @@ class SettingViewModel(
                     if (existing != null) {
                         existing.copy(value = value)
                     } else {
-                        Setting(name = name, value = value)
+                        SettingEntity(name = name, value = value)
                     }
                 }
                 settingRepository.insertSettings(settingEntities)
@@ -123,7 +113,6 @@ class SettingViewModel(
         }
     }
 
-    // DELETE setting by name
     fun deleteSetting(name: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -141,7 +130,6 @@ class SettingViewModel(
         }
     }
 
-    // DELETE all settings
     fun deleteAllSettings() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -170,7 +158,6 @@ class SettingViewModel(
     }
 }
 
-// Factory class for creating ViewModel with dependencies
 class SettingViewModelFactory(
     private val repository: SettingRepository
 ) : ViewModelProvider.Factory {
@@ -182,7 +169,6 @@ class SettingViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
 
 @Composable
 fun settingsViewModelFactory(context: android.content.Context): SettingViewModelFactory {

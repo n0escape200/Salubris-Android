@@ -5,80 +5,108 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.salubris.database.AppDatabase
-import com.example.salubris.database.DAO.MealDao
-import com.example.salubris.database.DAO.TrackedMealDao
-import com.example.salubris.database.entities.Meal
-import com.example.salubris.database.entities.MealWithProducts
-import com.example.salubris.database.entities.Product
-import com.example.salubris.database.relations.ProductWithQuantity   // ✅ fixed import
-import com.example.salubris.database.repositories.MacroRepository
+import com.example.salubris.database.entities.MealComponent
+import com.example.salubris.database.entities.MealEntity
 import com.example.salubris.database.repositories.MealRepository
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// Helper for UI to handle parsed meals
+data class MealUI(
+    val meal: MealEntity,
+    val components: List<MealComponent>
+)
+
 class MealViewModel(
-    private val repository: MealRepository
+    private val mealRepository: MealRepository
 ) : ViewModel() {
 
-    private val _mealsWithProducts = MutableStateFlow<List<MealWithProducts>>(emptyList())
-    val mealsWithProducts: StateFlow<List<MealWithProducts>> = _mealsWithProducts.asStateFlow()
-
-    private val _allProducts = MutableStateFlow<List<Product>>(emptyList())
-    val allProducts: StateFlow<List<Product>> = _allProducts.asStateFlow()
+    private val _meals = MutableStateFlow<List<MealUI>>(emptyList())
+    val meals: StateFlow<List<MealUI>> = _meals.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val gson = Gson()
 
     fun loadData() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _mealsWithProducts.value = repository.getAllMealsWithProducts()
-                _allProducts.value = repository.getAllProducts()
+                val mealsList = mealRepository.getAllMeals()
+                _meals.value = mealsList.map {
+                    MealUI(
+                        it,
+                        gson.fromJson(it.componentsJson, Array<MealComponent>::class.java).toList()
+                    )
+                }
             } catch (e: Exception) {
-                // Handle error
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun addMeal(mealName: String, productsWithQuantities: List<ProductWithQuantity>) {
+    fun addMeal(mealName: String, components: List<MealComponent>) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                repository.insertMealWithProducts(mealName, productsWithQuantities)
-                _mealsWithProducts.value = repository.getAllMealsWithProducts()
+                val meal = MealEntity(
+                    name = mealName,
+                    componentsJson = gson.toJson(components)
+                )
+                mealRepository.insertMeal(meal)
+                loadData()
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun updateMealProducts(mealId: Int, productsWithQuantities: List<ProductWithQuantity>) {
+    // ✅ NEW: update an existing meal
+    fun updateMeal(mealId: Int, newName: String, newComponents: List<MealComponent>) {
         viewModelScope.launch {
-            repository.updateMealProducts(mealId, productsWithQuantities)
-            _mealsWithProducts.value = repository.getAllMealsWithProducts()
+            _isLoading.value = true
+            try {
+                val existingMeal = mealRepository.getMealById(mealId)
+                if (existingMeal != null) {
+                    val updatedMeal = existingMeal.copy(
+                        name = newName,
+                        componentsJson = gson.toJson(newComponents)
+                    )
+                    // Note: we need an update method in repository; we'll add one.
+                    mealRepository.updateMeal(updatedMeal)
+                    loadData()
+                }
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    fun deleteMeal(meal: Meal) {
+    fun deleteMeal(meal: MealEntity) {
         viewModelScope.launch {
-            repository.deleteMeal(meal)
-            _mealsWithProducts.value = repository.getAllMealsWithProducts()
+            mealRepository.deleteMeal(meal)
+            loadData()
         }
     }
 }
 
+// Update MealRepository to include update method:
+// In MealRepository.kt, add:
+// suspend fun updateMeal(meal: MealEntity) = mealDao.updateMeal(meal)
+
 class MealViewModelFactory(
-    private val repository: MealRepository
+    private val mealRepository: MealRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MealViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return MealViewModel(repository) as T
+            return MealViewModel(mealRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
