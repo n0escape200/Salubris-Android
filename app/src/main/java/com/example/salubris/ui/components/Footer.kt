@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -85,6 +86,7 @@ fun Footer(
     onItemSelected: (String) -> Unit,
     onUpdateFavorites: (List<String>) -> Unit,
     onOpenChat: () -> Unit,
+    onOpenHealthReport: () -> Unit,   // new callback
     actions: List<FooterAction> = emptyList()
 ) {
     val configuration = LocalConfiguration.current
@@ -293,7 +295,8 @@ fun Footer(
                             color = Color.LightGray,
                             fontSize = 14.sp
                         )
-                        // AI Chat action
+
+                        // AI Chat action (existing)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -316,6 +319,34 @@ fun Footer(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 Vocabulary.get().aiAssistant,
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+
+                        // NEW: Health Report action
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .clickable {
+                                    showModal = false
+                                    onOpenHealthReport()
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Icon(
+                                Icons.Default.Info,   // use any icon you prefer
+                                contentDescription = Vocabulary.get().healthReport,
+                                tint = productColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                Vocabulary.get().healthReport,
                                 color = Color.White,
                                 fontSize = 16.sp
                             )

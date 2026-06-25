@@ -17,4 +17,7 @@ interface StepHistoryDao {
 
     @Query("SELECT COUNT(*) FROM step_history")
     suspend fun getTotalCount(): Int
+
+    @Query("SELECT * FROM step_history WHERE date = :date")
+    suspend fun getByDate(date: String): StepHistoryEntity?
 }

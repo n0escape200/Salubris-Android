@@ -333,6 +333,9 @@ object Vocabulary {
 
         // Added: meals (for Macros screen button)
         var meals: String by notNull()
+
+        // NEW: Health Report
+        var healthReport: String by notNull()
     }
 
     // ------------------------------------------------------------------
@@ -641,6 +644,9 @@ object Vocabulary {
             "Position barcode inside the frame\nScanning multiple times for accuracy..."
 
         meals = "Meals"
+
+        // NEW: Health Report (English)
+        healthReport = "Health Report"
     }
 
     // ------------------------------------------------------------------
@@ -951,6 +957,9 @@ object Vocabulary {
             "Coloca el código de barras dentro del marco\nEscaneando varias veces para mayor precisión..."
 
         meals = "Comidas"
+
+        // NEW: Health Report (Spanish)
+        healthReport = "Informe de Salud"
     }
 
     // ------------------------------------------------------------------
@@ -1265,6 +1274,9 @@ object Vocabulary {
             "Placez le code‑barres dans le cadre\nScan multiple pour plus de précision..."
 
         meals = "Repas"
+
+        // NEW: Health Report (French)
+        healthReport = "Rapport de Santé"
     }
 
     // ------------------------------------------------------------------
@@ -1578,6 +1590,9 @@ object Vocabulary {
             "Positionieren Sie den Barcode innerhalb des Rahmens\nMehrfachscan für Genauigkeit..."
 
         meals = "Mahlzeiten"
+
+        // NEW: Health Report (German)
+        healthReport = "Gesundheitsbericht"
     }
 
     // ------------------------------------------------------------------
@@ -1889,6 +1904,9 @@ object Vocabulary {
             "Poziționează codul de bare în interiorul cadrului\nScanare de mai multe ori pentru precizie..."
 
         meals = "Mese"
+
+        // NEW: Health Report (Romanian)
+        healthReport = "Raport de Sănătate"
     }
 
     // Helper to copy one Strings instance to another (unused here since we manually assign everything)

@@ -18,4 +18,6 @@ class StepHistoryRepository(
     suspend fun getTotalCount(): Int {
         return stepHistoryDao.getTotalCount()
     }
+    
+    suspend fun getStepsForDate(date: String): StepHistoryEntity? = stepHistoryDao.getByDate(date)
 }

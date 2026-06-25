@@ -28,4 +28,5 @@ interface MacroLineDao {
 
     @Delete
     suspend fun delete(macro: Macro)
+    
 }

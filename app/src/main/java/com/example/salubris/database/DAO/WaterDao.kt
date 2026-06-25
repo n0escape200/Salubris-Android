@@ -31,4 +31,7 @@ interface WaterDao {
 
     @Query("SELECT * FROM daily_water_history ORDER BY date DESC")
     fun getAllHistory(): Flow<List<DailyWaterHistory>>
+
+    @Query("SELECT * FROM daily_water_history WHERE date = :date")
+    suspend fun getByDate(date: String): DailyWaterHistory?
 }
