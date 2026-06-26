@@ -79,8 +79,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.TemporalAdjusters
 
+// ✅ CORRECTED: calories are already total per entry, use fold to avoid overload ambiguity
 fun calculateTotalCalories(list: List<TrackedItem>): Float {
-    return list.fold(0f) { total, item -> total + item.calories * (item.amountOrMultiplier / 100) }
+    return list.fold(0f) { acc, item -> acc + item.calories }
 }
 
 @Composable
@@ -569,8 +570,7 @@ fun Home(
             for (date in days) {
                 val startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
                 val items = macroViewModel.getTrackedItemsForDay(startOfDay)
-                val totalCal =
-                    items.sumOf { (it.calories * it.amountOrMultiplier / 100).toDouble() }.toFloat()
+                val totalCal = items.fold(0f) { acc, item -> acc + item.calories } // ✅ use fold
                 results.add(totalCal)
             }
             weeklyCalories = results

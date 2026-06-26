@@ -1,0 +1,1436 @@
+-e 
+
+===== FILE: ./DAO/MealDao.kt =====
+
+package com.example.salubris.database.DAO
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update   // ✅ add this import
+import com.example.salubris.database.entities.MealEntity
+
+@Dao
+interface MealDao {
+    @Insert
+    suspend fun insertMeal(meal: MealEntity): Long
+
+    @Update
+    suspend fun updateMeal(meal: MealEntity)
+
+    @Query("SELECT * FROM meals ORDER BY uid DESC")
+    suspend fun getAllMeals(): List<MealEntity>
+
+    @Query("SELECT * FROM meals WHERE uid = :mealId")
+    suspend fun getMealById(mealId: Int): MealEntity?
+
+    @Delete
+    suspend fun deleteMeal(meal: MealEntity)
+}-e 
+
+===== FILE: ./DAO/StepHistoryDao.kt =====
+
+package com.example.salubris.database.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.example.salubris.database.entities.StepHistoryEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface StepHistoryDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entry: StepHistoryEntity)
+
+    @Query("SELECT * FROM step_history ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    fun getHistoryPaged(limit: Int, offset: Int): Flow<List<StepHistoryEntity>>
+
+    @Query("SELECT COUNT(*) FROM step_history")
+    suspend fun getTotalCount(): Int
+
+    @Query("SELECT * FROM step_history WHERE date = :date")
+    suspend fun getByDate(date: String): StepHistoryEntity?
+}-e 
+
+===== FILE: ./DAO/ProductDao.kt =====
+
+package com.example.salubris.database.DAO
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.salubris.database.entities.ProductEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ProductDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(product: ProductEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(products: List<ProductEntity>)
+
+    @Query("SELECT * FROM products ORDER BY name ASC")
+    fun getProducts(): Flow<List<ProductEntity>>
+
+    @Query("SELECT * FROM products WHERE uid = :id")
+    fun getProductByIdFlow(id: Int): Flow<ProductEntity?>
+
+    @Query("SELECT * FROM products WHERE uid = :id")
+    suspend fun getProductById(id: Int): ProductEntity?
+
+    @Update
+    suspend fun update(product: ProductEntity)
+
+    @Delete
+    suspend fun delete(product: ProductEntity)
+
+    @Query("DELETE FROM products")
+    suspend fun deleteAll()
+}
+-e 
+
+===== FILE: ./DAO/SettingDao.kt =====
+
+package com.example.salubris.database.DAO
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.salubris.database.entities.SettingEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface SettingDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(setting: SettingEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(settings: List<SettingEntity>)
+
+    @Query("SELECT * FROM settings ORDER BY name ASC")
+    fun getAllSettings(): Flow<List<SettingEntity>>
+
+    @Query("SELECT * FROM settings WHERE name = :name")
+    suspend fun getSettingByName(name: String): SettingEntity?
+
+    @Query("SELECT * FROM settings WHERE uid = :id")
+    fun getSettingByIdFlow(id: Int): Flow<SettingEntity?>
+
+    @Query("SELECT * FROM settings WHERE uid = :id")
+    suspend fun getSettingById(id: Int): SettingEntity?
+
+    @Update
+    suspend fun update(setting: SettingEntity)
+
+    @Delete
+    suspend fun delete(setting: SettingEntity)
+
+    @Query("DELETE FROM settings")
+    suspend fun deleteAll()
+}
+-e 
+
+===== FILE: ./DAO/MacroDao.kt =====
+
+package com.example.salubris.database.DAO
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import com.example.salubris.database.entities.MacroEntity
+
+@Dao
+interface MacroDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(macro: MacroEntity)
+
+    @Query("SELECT * FROM macro")   // table name lowercased to match entity
+    suspend fun getAllLines(): List<MacroEntity>
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM macro
+        WHERE date >= :dayStart
+        AND date < (:dayStart + 86400000)
+        """
+    )
+    suspend fun getMacrosForDay(dayStart: Long): List<MacroEntity>
+
+    @Delete
+    suspend fun delete(macro: MacroEntity)
+
+    @Query("DELETE FROM macro WHERE uid = :id")
+    suspend fun deleteById(id: Int)
+}-e 
+
+===== FILE: ./DAO/WaterDao.kt =====
+
+package com.example.salubris.database.DAO
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
+import com.example.salubris.database.entities.WaterEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface WaterDao {
+    @Insert
+    suspend fun insertEntry(entry: WaterEntity)
+
+    @Delete
+    suspend fun deleteEntry(entry: WaterEntity)
+
+    @Query("SELECT * FROM water_entries WHERE date = :date ORDER BY timestamp DESC")
+    fun getEntriesForDate(date: String): Flow<List<WaterEntity>>
+
+    @Query("SELECT SUM(amountMl) FROM water_entries WHERE date = :date")
+    fun getTotalForDate(date: String): Flow<Int?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyHistory(history: DailyWaterHistoryEntity)
+
+    @Query("SELECT * FROM daily_water_history WHERE date = :date")
+    suspend fun getDailyHistory(date: String): DailyWaterHistoryEntity?
+
+    @Query("SELECT * FROM daily_water_history ORDER BY date DESC")
+    fun getAllHistory(): Flow<List<DailyWaterHistoryEntity>>
+
+    @Query("SELECT * FROM daily_water_history WHERE date = :date")
+    suspend fun getByDate(date: String): DailyWaterHistoryEntity?
+}
+-e 
+
+===== FILE: ./entities/ProductEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "products")
+data class ProductEntity(
+    @PrimaryKey(autoGenerate = true)
+    val uid: Int = 0,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "calories") val calories: Float = 0f,
+    @ColumnInfo(name = "protein") val protein: Float = 0f,
+    @ColumnInfo(name = "carbs") val carbs: Float = 0f,
+    @ColumnInfo(name = "fats") val fats: Float = 0f,
+    @ColumnInfo(name = "code") val code: String = ""
+)
+-e 
+
+===== FILE: ./entities/WaterEntity.kt =====
+
+package com.example.salubris.database.entities
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "water_entries")
+data class WaterEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val amountMl: Int,
+    val timestamp: Long,
+    val date: String
+)
+-e 
+
+===== FILE: ./entities/MealComponent.kt =====
+
+package com.example.salubris.database.entities
+
+data class MealComponent(
+    val productName: String,
+    val calories: Float,
+    val protein: Float,
+    val carbs: Float,
+    val fats: Float,
+    val quantity: Float, // grams of this ingredient in the recipe
+    val resolvedProductId: Int? = null, // null if not resolved (draft)
+    val isDraft: Boolean = false        // true if product not found in DB
+)-e 
+
+===== FILE: ./entities/SettingEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "settings")
+data class SettingEntity(
+    @PrimaryKey(autoGenerate = true)
+    val uid: Int = 0,
+    @ColumnInfo(name = "name")
+    val name: String,
+    @ColumnInfo(name = "value")
+    val value: String
+)
+-e 
+
+===== FILE: ./entities/StepHistoryEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "step_history")
+data class StepHistoryEntity(
+    @PrimaryKey(autoGenerate = true)
+    val uid: Int = 0,
+    @ColumnInfo(name = "date")
+    val date: String,          // yyyy-MM-dd
+    @ColumnInfo(name = "steps")
+    val steps: Int
+)-e 
+
+===== FILE: ./entities/MealEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "meals")
+data class MealEntity(
+    @PrimaryKey(autoGenerate = true)
+    val uid: Int = 0,
+    val name: String,
+    val componentsJson: String // Serialized List<MealComponent>
+)
+-e 
+
+===== FILE: ./entities/DailyWaterHistoryEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "daily_water_history")
+data class DailyWaterHistoryEntity(
+    @PrimaryKey val date: String, // yyyy-MM-dd
+    val consumedMl: Int,
+    val goalMl: Int
+)
+-e 
+
+===== FILE: ./entities/MacroEntity.kt =====
+
+package com.example.salubris.database.entities
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "macro")
+data class MacroEntity(
+    @PrimaryKey(autoGenerate = true)
+    val uid: Int = 0,
+    @ColumnInfo(name = "name") val name: String = "",
+    @ColumnInfo(name = "calories") val calories: Float = 0f,
+    @ColumnInfo(name = "protein") val protein: Float = 0f,
+    @ColumnInfo(name = "carbs") val carbs: Float = 0f,
+    @ColumnInfo(name = "fats") val fats: Float = 0f,
+    @ColumnInfo("amount") val amount: Float,
+    @ColumnInfo("date") val date: Long,
+    @ColumnInfo(name = "isMeal") val isMeal: Boolean = false
+)-e 
+
+===== FILE: ./Converters.kt =====
+
+package com.example.salubris.database
+
+import androidx.room.TypeConverter
+import com.example.salubris.database.entities.MealComponent
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+
+class Converters {
+    @TypeConverter
+    fun fromMealComponentList(value: List<MealComponent>): String {
+        return Gson().toJson(value)
+    }
+
+    @TypeConverter
+    fun toMealComponentList(value: String): List<MealComponent> {
+        val listType = object : TypeToken<List<MealComponent>>() {}.type
+        return Gson().fromJson(value, listType)
+    }
+}
+-e 
+
+===== FILE: ./repositories/SettingRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.DAO.SettingDao
+import com.example.salubris.database.entities.SettingEntity
+import kotlinx.coroutines.flow.Flow
+
+class SettingRepository(
+    private val settingDao: SettingDao
+) {
+    suspend fun insertSetting(setting: SettingEntity) {
+        settingDao.insert(setting)
+    }
+
+    suspend fun insertSettings(settings: List<SettingEntity>) {
+        settingDao.insertAll(settings)
+    }
+
+    fun getAllSettings(): Flow<List<SettingEntity>> {
+        return settingDao.getAllSettings()
+    }
+
+    suspend fun getSettingByName(name: String): SettingEntity? {
+        return settingDao.getSettingByName(name)
+    }
+
+    fun getSettingFlowById(id: Int): Flow<SettingEntity?> {
+        return settingDao.getSettingByIdFlow(id)
+    }
+
+    suspend fun getSettingById(id: Int): SettingEntity? {
+        return settingDao.getSettingById(id)
+    }
+
+    suspend fun updateSetting(setting: SettingEntity) {
+        settingDao.update(setting)
+    }
+
+    suspend fun deleteSetting(setting: SettingEntity) {
+        settingDao.delete(setting)
+    }
+
+    suspend fun deleteAllSettings() {
+        settingDao.deleteAll()
+    }
+}
+-e 
+
+===== FILE: ./repositories/MealRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.DAO.MealDao
+import com.example.salubris.database.entities.MealEntity
+
+class MealRepository(
+    private val mealDao: MealDao
+) {
+    suspend fun insertMeal(meal: MealEntity): Long = mealDao.insertMeal(meal)
+    suspend fun getAllMeals(): List<MealEntity> = mealDao.getAllMeals()
+    suspend fun getMealById(id: Int): MealEntity? = mealDao.getMealById(id)
+    suspend fun updateMeal(meal: MealEntity) = mealDao.updateMeal(meal)  // ✅ new
+    suspend fun deleteMeal(meal: MealEntity) = mealDao.deleteMeal(meal)
+}-e 
+
+===== FILE: ./repositories/MacroRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.DAO.MacroDao
+import com.example.salubris.database.entities.MacroEntity
+
+class MacroRepository(private val macroDao: MacroDao) {
+    suspend fun insertMacroLine(macro: MacroEntity) {
+        macroDao.insert(macro)
+    }
+
+    suspend fun getMacrosForDay(dayStart: Long): List<MacroEntity> {
+        return macroDao.getMacrosForDay(dayStart)
+    }
+
+    suspend fun deleteMacro(macro: MacroEntity) {
+        macroDao.delete(macro)
+    }
+
+    suspend fun deleteMacroById(id: Int) {
+        macroDao.deleteById(id)
+    }
+}-e 
+
+===== FILE: ./repositories/StepRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+object StepRepository {
+    private val _steps = MutableStateFlow(0)
+    val steps: StateFlow<Int> = _steps.asStateFlow()
+
+    private val _sensorAvailable = MutableStateFlow(true)
+    val sensorAvailable: StateFlow<Boolean> = _sensorAvailable.asStateFlow()
+
+    fun updateSteps(value: Int) {
+        _steps.value = value
+    }
+
+    fun setSensorAvailable(available: Boolean) {
+        _sensorAvailable.value = available
+    }
+}-e 
+
+===== FILE: ./repositories/WaterRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.DAO.WaterDao
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
+import com.example.salubris.database.entities.WaterEntity
+
+class WaterRepository(private val dao: WaterDao) {
+    fun getTodayEntries(date: String) = dao.getEntriesForDate(date)
+    fun getTodayTotal(date: String) = dao.getTotalForDate(date)
+    
+    suspend fun addEntry(amountMl: Int, date: String) {
+        val entry = WaterEntity(
+            amountMl = amountMl,
+            timestamp = System.currentTimeMillis(),
+            date = date
+        )
+        dao.insertEntry(entry)
+    }
+
+    suspend fun deleteEntry(entry: WaterEntity) = dao.deleteEntry(entry)
+
+    suspend fun archiveDay(date: String, totalMl: Int, goalMl: Int) {
+        dao.insertDailyHistory(DailyWaterHistoryEntity(date, totalMl, goalMl))
+    }
+
+    fun getAllHistory() = dao.getAllHistory()
+}
+-e 
+
+===== FILE: ./repositories/ProductRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.DAO.ProductDao
+import com.example.salubris.database.entities.ProductEntity
+import kotlinx.coroutines.flow.Flow
+
+class ProductRepository(private val productDao: ProductDao) {
+
+    suspend fun insertProduct(product: ProductEntity) {
+        productDao.insert(product)
+    }
+
+    suspend fun insertProducts(products: List<ProductEntity>) {
+        productDao.insertAll(products)
+    }
+
+    fun getAllProducts(): Flow<List<ProductEntity>> {
+        return productDao.getProducts()
+    }
+
+    fun getProductFlowById(id: Int): Flow<ProductEntity?> {
+        return productDao.getProductByIdFlow(id)
+    }
+
+    suspend fun getProductById(id: Int): ProductEntity? {
+        return productDao.getProductById(id)
+    }
+
+    suspend fun updateProduct(product: ProductEntity) {
+        productDao.update(product)
+    }
+
+    suspend fun deleteProduct(product: ProductEntity) {
+        productDao.delete(product)
+    }
+
+    suspend fun deleteAllProducts() {
+        productDao.deleteAll()
+    }
+}
+-e 
+
+===== FILE: ./repositories/StepHistoryRepository.kt =====
+
+package com.example.salubris.database.repositories
+
+import com.example.salubris.database.dao.StepHistoryDao
+import com.example.salubris.database.entities.StepHistoryEntity
+import kotlinx.coroutines.flow.Flow
+
+class StepHistoryRepository(
+    private val stepHistoryDao: StepHistoryDao
+) {
+    suspend fun insertStepHistory(entry: StepHistoryEntity) {
+        stepHistoryDao.insert(entry)
+    }
+
+    fun getHistoryPaged(limit: Int, offset: Int): Flow<List<StepHistoryEntity>> {
+        return stepHistoryDao.getHistoryPaged(limit, offset)
+    }
+
+    suspend fun getTotalCount(): Int {
+        return stepHistoryDao.getTotalCount()
+    }
+    
+    suspend fun getStepsForDate(date: String): StepHistoryEntity? = stepHistoryDao.getByDate(date)
+}-e 
+
+===== FILE: ./AppDatabase.kt =====
+
+package com.example.salubris.database
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.example.salubris.database.DAO.MacroDao
+import com.example.salubris.database.DAO.MealDao
+import com.example.salubris.database.DAO.ProductDao
+import com.example.salubris.database.DAO.SettingDao
+import com.example.salubris.database.DAO.WaterDao
+import com.example.salubris.database.dao.StepHistoryDao
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
+import com.example.salubris.database.entities.MacroEntity
+import com.example.salubris.database.entities.MealEntity
+import com.example.salubris.database.entities.ProductEntity
+import com.example.salubris.database.entities.SettingEntity
+import com.example.salubris.database.entities.StepHistoryEntity
+import com.example.salubris.database.entities.WaterEntity
+
+@Database(
+    entities = [
+        ProductEntity::class,
+        SettingEntity::class,
+        MacroEntity::class,
+        WaterEntity::class,
+        DailyWaterHistoryEntity::class,
+        MealEntity::class,
+        StepHistoryEntity::class
+    ],
+    version = 1
+)
+@TypeConverters(Converters::class)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun productDao(): ProductDao
+    abstract fun settingDao(): SettingDao
+    abstract fun macroDao(): MacroDao
+    abstract fun waterDao(): WaterDao
+    abstract fun mealDao(): MealDao
+    abstract fun stepHistoryDao(): StepHistoryDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "Salubris"
+                ).fallbackToDestructiveMigration()
+                    .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}
+-e 
+
+===== FILE: ./viewmodels/StepHistoryViewModelFactory.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.repositories.StepHistoryRepository
+
+class StepHistoryViewModelFactory(
+    private val repository: StepHistoryRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(StepHistoryViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return StepHistoryViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun stepHistoryViewModelFactory(context: android.content.Context): StepHistoryViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val repository = StepHistoryRepository(database.stepHistoryDao())
+    return StepHistoryViewModelFactory(repository)
+}-e 
+
+===== FILE: ./viewmodels/ProductViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.ProductEntity
+import com.example.salubris.database.repositories.ProductRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class ProductViewModel(
+    private val repository: ProductRepository
+) : ViewModel() {
+
+    val products: StateFlow<List<ProductEntity>> =
+        repository.getAllProducts()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    fun addProduct(product: ProductEntity) {
+        viewModelScope.launch {
+            repository.insertProduct(product)
+        }
+    }
+}
+
+class ProductViewModelFactory(
+    private val repository: ProductRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ProductViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ProductViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun productViewModelFactory(context: android.content.Context): ProductViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val repository = ProductRepository(database.productDao())
+    return ProductViewModelFactory(repository)
+}
+-e 
+
+===== FILE: ./viewmodels/WaterViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.DailyWaterHistoryEntity
+import com.example.salubris.database.entities.WaterEntity
+import com.example.salubris.database.repositories.WaterRepository
+import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+class WaterViewModel(
+    private val repository: WaterRepository
+) : ViewModel() {
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
+    val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _todayEntries = MutableStateFlow<List<WaterEntity>>(emptyList())
+    val todayEntries: StateFlow<List<WaterEntity>> = _todayEntries.asStateFlow()
+
+    private val _todayTotal = MutableStateFlow(0)
+    val todayTotal: StateFlow<Int> = _todayTotal.asStateFlow()
+
+    private var currentDate: String = ""
+
+    fun setDate(date: String) {
+        if (currentDate != date) {
+            currentDate = date
+            loadDataForDate(date)
+        }
+    }
+
+    private fun loadDataForDate(date: String) {
+        viewModelScope.launch {
+            repository.getTodayEntries(date).collect { entries ->
+                _todayEntries.value = entries
+            }
+        }
+        viewModelScope.launch {
+            repository.getTodayTotal(date).collect { total ->
+                _todayTotal.value = total ?: 0
+            }
+        }
+    }
+
+    private val _history = MutableStateFlow<List<DailyWaterHistoryEntity>>(emptyList())
+    val history: StateFlow<List<DailyWaterHistoryEntity>> = _history.asStateFlow()
+
+    fun loadHistory() {
+        viewModelScope.launch {
+            repository.getAllHistory().collect { historyList ->
+                _history.value = historyList
+            }
+        }
+    }
+
+    fun addWaterEntry(amountMl: Int, date: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _operationStatus.value = OperationStatus.Idle
+            try {
+                repository.addEntry(amountMl, date)
+                _operationStatus.value = OperationStatus.Success
+                loadDataForDate(date)
+            } catch (e: Exception) {
+                _error.value = "Error adding water entry: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteWaterEntry(entry: WaterEntity) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _operationStatus.value = OperationStatus.Idle
+            try {
+                repository.deleteEntry(entry)
+                _operationStatus.value = OperationStatus.Success
+                loadDataForDate(currentDate)
+            } catch (e: Exception) {
+                _error.value = "Error deleting water entry: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun archiveDay(date: String, totalMl: Int, goalMl: Int) {
+        viewModelScope.launch {
+            repository.archiveDay(date, totalMl, goalMl)
+        }
+    }
+}
+
+class WaterViewModelFactory(private val repository: WaterRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(WaterViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return WaterViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun waterViewModelFactory(context: Context): WaterViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val repository = WaterRepository(database.waterDao())
+    return WaterViewModelFactory(repository)
+}
+-e 
+
+===== FILE: ./viewmodels/SettingViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.SettingEntity
+import com.example.salubris.database.repositories.SettingRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
+
+class SettingViewModel(
+    private val settingRepository: SettingRepository
+) : ViewModel() {
+
+    private val _settings = MutableStateFlow<List<SettingEntity>>(emptyList())
+    val settings: StateFlow<List<SettingEntity>> = _settings.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
+    val operationStatus: StateFlow<OperationStatus> = _operationStatus.asStateFlow()
+
+    sealed class OperationStatus {
+        object Idle : OperationStatus()
+        object Success : OperationStatus()
+        data class Error(val message: String) : OperationStatus()
+    }
+
+    init {
+        getAllSettings()
+    }
+
+    fun getAllSettings() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            settingRepository.getAllSettings()
+                .catch { exception ->
+                    _error.value = "Error loading settings: ${exception.message}"
+                    _isLoading.value = false
+                }
+                .collect { settingsList ->
+                    _settings.value = settingsList
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    fun getSettingByName(name: String): SettingEntity? {
+        return _settings.value.find { it.name == name }
+    }
+
+    fun getSettingValue(name: String, defaultValue: String = ""): String {
+        return getSettingByName(name)?.value ?: defaultValue
+    }
+
+    fun getSettingValueAsInt(name: String, defaultValue: Int = 0): Int {
+        return getSettingByName(name)?.value?.toIntOrNull() ?: defaultValue
+    }
+
+    fun saveSetting(name: String, value: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _operationStatus.value = OperationStatus.Idle
+            try {
+                val existingSetting = getSettingByName(name)
+                if (existingSetting != null) {
+                    val updatedSetting = existingSetting.copy(value = value)
+                    settingRepository.updateSetting(updatedSetting)
+                } else {
+                    val newSetting = SettingEntity(name = name, value = value)
+                    settingRepository.insertSetting(newSetting)
+                }
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error saving setting: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun saveSettings(settings: List<Pair<String, String>>) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _operationStatus.value = OperationStatus.Idle
+            try {
+                val settingEntities = settings.map { (name, value) ->
+                    val existing = getSettingByName(name)
+                    if (existing != null) {
+                        existing.copy(value = value)
+                    } else {
+                        SettingEntity(name = name, value = value)
+                    }
+                }
+                settingRepository.insertSettings(settingEntities)
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error saving settings: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteSetting(name: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                getSettingByName(name)?.let { setting ->
+                    settingRepository.deleteSetting(setting)
+                }
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error deleting setting: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteAllSettings() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                settingRepository.deleteAllSettings()
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error deleting all settings: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    fun resetOperationStatus() {
+        _operationStatus.value = OperationStatus.Idle
+    }
+
+    fun getSettingsMap(): Map<String, String> {
+        return _settings.value.associate { it.name to it.value }
+    }
+}
+
+class SettingViewModelFactory(
+    private val repository: SettingRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(SettingViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return SettingViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun settingsViewModelFactory(context: android.content.Context): SettingViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val repository = SettingRepository(database.settingDao())
+    return SettingViewModelFactory(repository)
+}
+-e 
+
+===== FILE: ./viewmodels/MealViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.MealComponent
+import com.example.salubris.database.entities.MealEntity
+import com.example.salubris.database.repositories.MealRepository
+import com.google.gson.Gson
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+// Helper for UI to handle parsed meals
+data class MealUI(
+    val meal: MealEntity,
+    val components: List<MealComponent>
+)
+
+class MealViewModel(
+    private val mealRepository: MealRepository
+) : ViewModel() {
+
+    private val _meals = MutableStateFlow<List<MealUI>>(emptyList())
+    val meals: StateFlow<List<MealUI>> = _meals.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val gson = Gson()
+
+    fun loadData() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val mealsList = mealRepository.getAllMeals()
+                _meals.value = mealsList.map {
+                    MealUI(
+                        it,
+                        gson.fromJson(it.componentsJson, Array<MealComponent>::class.java).toList()
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun addMeal(mealName: String, components: List<MealComponent>) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val meal = MealEntity(
+                    name = mealName,
+                    componentsJson = gson.toJson(components)
+                )
+                mealRepository.insertMeal(meal)
+                loadData()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // ✅ NEW: update an existing meal
+    fun updateMeal(mealId: Int, newName: String, newComponents: List<MealComponent>) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val existingMeal = mealRepository.getMealById(mealId)
+                if (existingMeal != null) {
+                    val updatedMeal = existingMeal.copy(
+                        name = newName,
+                        componentsJson = gson.toJson(newComponents)
+                    )
+                    // Note: we need an update method in repository; we'll add one.
+                    mealRepository.updateMeal(updatedMeal)
+                    loadData()
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteMeal(meal: MealEntity) {
+        viewModelScope.launch {
+            mealRepository.deleteMeal(meal)
+            loadData()
+        }
+    }
+}
+
+// Update MealRepository to include update method:
+// In MealRepository.kt, add:
+// suspend fun updateMeal(meal: MealEntity) = mealDao.updateMeal(meal)
+
+class MealViewModelFactory(
+    private val mealRepository: MealRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MealViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MealViewModel(mealRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun mealViewModelFactory(context: android.content.Context): MealViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val mealRepository = MealRepository(database.mealDao())
+    return MealViewModelFactory(mealRepository)
+}-e 
+
+===== FILE: ./viewmodels/MacroViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.AppDatabase
+import com.example.salubris.database.entities.MacroEntity
+import com.example.salubris.database.entities.MealComponent
+import com.example.salubris.database.repositories.MacroRepository
+import com.example.salubris.database.repositories.MealRepository
+import com.example.salubris.database.viewmodels.SettingViewModel.OperationStatus
+import com.google.gson.Gson
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+
+data class TrackedItem(
+    val id: Int,
+    val type: String,          // "product" or "meal" – derived from isMeal
+    val name: String,
+    val calories: Float,
+    val protein: Float,
+    val carbs: Float,
+    val fats: Float,
+    val amountOrMultiplier: Float,
+    val date: Long,
+    val isMeal: Boolean
+)
+
+class MacroViewModel(
+    private val macroRepository: MacroRepository,
+    private val mealRepository: MealRepository
+) : ViewModel() {
+
+    private val _isLoading = MutableStateFlow(false)
+    private val _operationStatus = MutableStateFlow<OperationStatus>(OperationStatus.Idle)
+    private val _error = MutableStateFlow<String?>(null)
+
+    fun saveMacroLine(
+        name: String,
+        calories: Float,
+        protein: Float,
+        carbs: Float,
+        fats: Float,
+        amount: Float,
+        date: Long
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _operationStatus.value = OperationStatus.Idle
+            try {
+                val newMacroLine = MacroEntity(
+                    name = name,
+                    calories = calories,
+                    protein = protein,
+                    carbs = carbs,
+                    fats = fats,
+                    amount = amount,
+                    date = date,
+                    isMeal = false   // ✅ product
+                )
+                macroRepository.insertMacroLine(newMacroLine)
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error saving product: ${e.message}"
+                _operationStatus.value = OperationStatus.Error(e.message ?: "Unknown error")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun saveTrackedMeal(mealId: Int, consumedGrams: Float, date: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val meal = mealRepository.getMealById(mealId)
+                if (meal == null) {
+                    _error.value = "Meal not found"
+                    return@launch
+                }
+                val components =
+                    Gson().fromJson(meal.componentsJson, Array<MealComponent>::class.java).toList()
+                val totalRecipeWeight = components.sumOf { it.quantity.toDouble() }.toFloat()
+                val fraction = if (totalRecipeWeight > 0) consumedGrams / totalRecipeWeight else 0f
+
+                var totalCalories = 0f
+                var totalProtein = 0f
+                var totalCarbs = 0f
+                var totalFats = 0f
+
+                components.forEach { comp ->
+                    val factor = comp.quantity * fraction / 100f
+                    totalCalories += comp.calories * factor
+                    totalProtein += comp.protein * factor
+                    totalCarbs += comp.carbs * factor
+                    totalFats += comp.fats * factor
+                }
+
+                val macroEntry = MacroEntity(
+                    name = meal.name,
+                    calories = totalCalories,
+                    protein = totalProtein,
+                    carbs = totalCarbs,
+                    fats = totalFats,
+                    amount = consumedGrams,
+                    date = date,
+                    isMeal = true   // ✅ meal
+                )
+                macroRepository.insertMacroLine(macroEntry)
+                _operationStatus.value = OperationStatus.Success
+            } catch (e: Exception) {
+                _error.value = "Error saving meal: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Returns combined tracked items (now all are Macros) for a given day.
+     */
+    suspend fun getTrackedItemsForDay(dayStart: Long): List<TrackedItem> {
+        val productEntries = macroRepository.getMacrosForDay(dayStart)
+
+        return productEntries.map { macro ->
+            TrackedItem(
+                id = macro.uid,
+                type = if (macro.isMeal) "meal" else "product",
+                name = macro.name,
+                calories = macro.calories,
+                protein = macro.protein,
+                carbs = macro.carbs,
+                fats = macro.fats,
+                amountOrMultiplier = macro.amount,
+                date = macro.date,
+                isMeal = macro.isMeal
+            )
+        }
+    }
+
+    suspend fun deleteTrackedProduct(macro: MacroEntity) {
+        macroRepository.deleteMacro(macro)
+    }
+
+    suspend fun deleteMacroById(id: Int) {
+        macroRepository.deleteMacroById(id)
+    }
+}
+
+// Update MacroRepository to have deleteById
+// I'll provide the updated repository file as well.
+
+class MacroViewModelFactory(
+    private val macroRepository: MacroRepository,
+    private val mealRepository: MealRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MacroViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MacroViewModel(macroRepository, mealRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@Composable
+fun macroViewModelFactory(context: android.content.Context): MacroViewModelFactory {
+    val database = AppDatabase.getDatabase(context)
+    val macroRepository = MacroRepository(database.macroDao())
+    val mealRepository = MealRepository(database.mealDao())
+    return MacroViewModelFactory(macroRepository, mealRepository)
+}-e 
+
+===== FILE: ./viewmodels/StepHistoryViewModel.kt =====
+
+package com.example.salubris.database.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.salubris.database.entities.StepHistoryEntity
+import com.example.salubris.database.repositories.StepHistoryRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
+
+class StepHistoryViewModel(
+    private val repository: StepHistoryRepository
+) : ViewModel() {
+
+    private val PAGE_SIZE = 10
+
+    private val _history = MutableStateFlow<List<StepHistoryEntity>>(emptyList())
+    val history: StateFlow<List<StepHistoryEntity>> = _history.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _canLoadMore = MutableStateFlow(true)
+    val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
+
+    private var currentPage = 0
+
+    init {
+        loadNextPage()
+    }
+
+    fun refresh() {
+        currentPage = 0
+        _history.value = emptyList()
+        _canLoadMore.value = true
+        loadNextPage()
+    }
+
+    fun loadNextPage() {
+        if (_isLoading.value || !_canLoadMore.value) return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            val offset = currentPage * PAGE_SIZE
+
+            repository.getHistoryPaged(PAGE_SIZE, offset)
+                .catch { exception ->
+                    // handle error
+                    _isLoading.value = false
+                }
+                .collect { newItems ->
+                    val currentList = _history.value
+                    _history.value = (currentList + newItems).distinctBy { it.uid }
+
+                    // Check if we reached the end
+                    if (newItems.size < PAGE_SIZE) {
+                        _canLoadMore.value = false
+                    } else {
+                        // Verify total count to be safe
+                        val total = repository.getTotalCount()
+                        if (_history.value.size >= total) {
+                            _canLoadMore.value = false
+                        }
+                    }
+                    currentPage++
+                    _isLoading.value = false
+                }
+        }
+    }
+}
